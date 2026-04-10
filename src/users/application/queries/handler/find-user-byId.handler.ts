@@ -1,12 +1,12 @@
 import { IQueryHandler, QueryHandler } from "@nestjs/cqrs";
-import { findUserById } from "../impl/find-user-byId.impl";
+import { findUserByIdImpl } from "../impl/find-user-byId.impl";
 import { ID_USER_REPOSITORY, UserRepository } from "src/users/domain/repositories/user.repository";
-import { Inject, NotFoundException } from "@nestjs/common";
+import { Inject, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { User } from "src/users/domain/entities/user.entity";
 
 
-@QueryHandler(findUserById)
-export class findUserByIdHandler implements IQueryHandler<findUserById>{
+@QueryHandler(findUserByIdImpl)
+export class findUserByIdHandler implements IQueryHandler<findUserByIdImpl>{
 
     constructor(
         @Inject(ID_USER_REPOSITORY)
@@ -14,7 +14,7 @@ export class findUserByIdHandler implements IQueryHandler<findUserById>{
     ){}
 
 
-    async execute(query: findUserById): Promise<User | null> {
+    async execute(query: findUserByIdImpl): Promise<User> {
         try {
 
             const user = await this.repo.findById(query.id)
@@ -26,8 +26,7 @@ export class findUserByIdHandler implements IQueryHandler<findUserById>{
             return user
 
         } catch (error) {
-            console.error('Error In Find User',error)
-            throw new Error("Error In Find User")
+            throw new InternalServerErrorException(error);
         }
     }
 }
