@@ -1,0 +1,403 @@
+-- ============================================================
+--  لقاء — Liqaa App · PostgreSQL Database Schema (Final)
+-- ============================================================
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "postgis";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+
+-- ============================================================
+--  ENUM TYPES
+-- ============================================================
+
+CREATE TYPE event_status       AS ENUM ('draft', 'open', 'full', 'ongoing', 'completed', 'cancelled');
+CREATE TYPE participant_status AS ENUM ('pending', 'accepted', 'rejected', 'left');
+CREATE TYPE media_type         AS ENUM ('photo', 'reel', 'video');
+CREATE TYPE report_status      AS ENUM ('pending', 'reviewed', 'resolved', 'dismissed');
+CREATE TYPE report_target      AS ENUM ('user', 'event', 'media', 'message');
+CREATE TYPE notification_type  AS ENUM (
+  'event_join_request', 'event_accepted', 'event_full',
+  'new_message', 'new_review', 'event_starting_soon',
+  'event_cancelled', 'badge_earned'
+);
+
+-- ============================================================
+--  USERS
+-- ============================================================
+
+CREATE TABLE users (
+  id               uuid         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  username         varchar(50)  NOT NULL UNIQUE,
+  email            varchar(255) NOT NULL UNIQUE,
+  google_id        varchar(255) UNIQUE,
+  phone            varchar(20)  UNIQUE,
+  password_hash    text,
+  full_name        varchar(100),
+  bio              text,
+  avatar_url       text,
+  location         geography(POINT, 4326),
+  country          varchar(255),
+  city             varchar(100),
+  reputation_score float        NOT NULL DEFAULT 5.0,
+  total_reviews    int          NOT NULL DEFAULT 0,
+  is_verified      boolean      NOT NULL DEFAULT false,
+  is_active        boolean      NOT NULL DEFAULT true,
+  created_at       timestamptz  NOT NULL DEFAULT now(),
+  last_active_at   timestamptz  NOT NULL DEFAULT now(),
+  CONSTRAINT must_have_auth CHECK (
+    password_hash IS NOT NULL OR google_id IS NOT NULL
+  )
+);
+
+CREATE INDEX idx_users_location     ON users USING GIST (location);
+CREATE INDEX idx_users_city         ON users (city);
+CREATE INDEX idx_users_username     ON users USING GIN (username gin_trgm_ops);
+CREATE INDEX idx_user_total_reviews ON users USING BTREE (total_reviews);
+
+-- ============================================================
+--  INTERESTS
+-- ============================================================
+
+CREATE TABLE interests (
+  id        serial      PRIMARY KEY,
+  name      varchar(60) NOT NULL UNIQUE,
+  icon      varchar(10),
+  color_hex varchar(7)
+);
+
+CREATE TABLE user_interests (
+  user_id     uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  interest_id int  NOT NULL REFERENCES interests (id) ON DELETE CASCADE,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, interest_id)
+);
+
+-- ============================================================
+--  EVENTS
+-- ============================================================
+
+CREATE TABLE events (
+  id               uuid         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  host_id          uuid         NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  title            varchar(120) NOT NULL,
+  description      text,
+  category         varchar(60)  NOT NULL,
+  location         geography(POINT, 4326) NOT NULL,
+  address          text,
+  city             varchar(100),
+  starts_at        timestamptz  NOT NULL,
+  duration_minutes int          NOT NULL DEFAULT 60,
+  max_participants int          NOT NULL DEFAULT 10,
+  current_count    int          NOT NULL DEFAULT 1,
+  status           event_status NOT NULL DEFAULT 'open',
+  cover_image_url  text,
+  is_public        boolean      NOT NULL DEFAULT true,
+  created_at       timestamptz  NOT NULL DEFAULT now(),
+  updated_at       timestamptz  NOT NULL DEFAULT now(),
+  CONSTRAINT max_participants_positive CHECK (max_participants > 0),
+  CONSTRAINT duration_positive         CHECK (duration_minutes > 0)
+);
+
+CREATE INDEX idx_events_location  ON events USING GIST (location);
+CREATE INDEX idx_events_starts_at ON events (starts_at);
+CREATE INDEX idx_events_status    ON events (status);
+CREATE INDEX idx_events_host      ON events (host_id);
+CREATE INDEX idx_events_city      ON events (city);
+
+CREATE OR REPLACE FUNCTION touch_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END;
+$$;
+
+CREATE TRIGGER trg_events_updated_at
+  BEFORE UPDATE ON events
+  FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
+
+-- ============================================================
+--  EVENT PARTICIPANTS
+-- ============================================================
+
+CREATE TABLE event_participants (
+  id        uuid               PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id  uuid               NOT NULL REFERENCES events (id) ON DELETE CASCADE,
+  user_id   uuid               NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  status    participant_status NOT NULL DEFAULT 'pending',
+  joined_at timestamptz        NOT NULL DEFAULT now(),
+  UNIQUE (event_id, user_id)
+);
+
+CREATE INDEX idx_ep_event ON event_participants (event_id, status);
+CREATE INDEX idx_ep_user  ON event_participants (user_id);
+
+CREATE OR REPLACE FUNCTION sync_event_count()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+  v_event_id  uuid;
+  v_new_count int;
+  v_max       int;
+BEGIN
+  v_event_id := COALESCE(NEW.event_id, OLD.event_id);
+
+  SELECT COUNT(*) + 1
+  INTO v_new_count
+  FROM event_participants
+  WHERE event_id = v_event_id AND status = 'accepted';
+
+  SELECT max_participants INTO v_max
+  FROM events WHERE id = v_event_id;
+
+  UPDATE events SET
+    current_count = v_new_count,
+    status = CASE
+               WHEN v_new_count >= v_max THEN 'full'::event_status
+               ELSE 'open'::event_status
+             END
+  WHERE id = v_event_id;
+
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+CREATE TRIGGER trg_sync_event_count
+  AFTER INSERT OR UPDATE OR DELETE ON event_participants
+  FOR EACH ROW EXECUTE FUNCTION sync_event_count();
+
+-- ============================================================
+--  REVIEWS
+-- ============================================================
+
+CREATE TABLE reviews (
+  id               uuid     PRIMARY KEY DEFAULT uuid_generate_v4(),
+  reviewer_id      uuid     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  reviewed_user_id uuid     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  event_id         uuid     NOT NULL REFERENCES events (id) ON DELETE CASCADE,
+  rating           smallint NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment          text,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (reviewer_id, reviewed_user_id, event_id),
+  CONSTRAINT no_self_review CHECK (reviewer_id <> reviewed_user_id)
+);
+
+CREATE INDEX idx_reviews_reviewed_user ON reviews (reviewed_user_id);
+CREATE INDEX idx_reviews_event         ON reviews (event_id);
+
+CREATE OR REPLACE FUNCTION sync_user_reputation()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE users SET
+    reputation_score = (
+      SELECT ROUND(AVG(rating)::numeric, 2)
+      FROM reviews
+      WHERE reviewed_user_id = COALESCE(NEW.reviewed_user_id, OLD.reviewed_user_id)
+    ),
+    total_reviews = (
+      SELECT COUNT(*)
+      FROM reviews
+      WHERE reviewed_user_id = COALESCE(NEW.reviewed_user_id, OLD.reviewed_user_id)
+    )
+  WHERE id = COALESCE(NEW.reviewed_user_id, OLD.reviewed_user_id);
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+CREATE TRIGGER trg_sync_reputation
+  AFTER INSERT OR UPDATE OR DELETE ON reviews
+  FOR EACH ROW EXECUTE FUNCTION sync_user_reputation();
+
+-- ============================================================
+--  GROUP CHAT (رسائل جماعية داخل الحدث)
+-- ============================================================
+
+CREATE TABLE group_event_messages (
+  id         uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id   uuid        NOT NULL REFERENCES events (id) ON DELETE CASCADE,
+  sender_id  uuid        NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  content    text        NOT NULL,
+  is_deleted boolean     NOT NULL DEFAULT false,
+  sent_at    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_group_msg_event  ON group_event_messages (event_id, sent_at DESC);
+CREATE INDEX idx_group_msg_sender ON group_event_messages (sender_id);
+
+-- ============================================================
+--  DIRECT MESSAGES (محادثات مباشرة بين الأفراد)
+-- ============================================================
+
+CREATE TABLE conversations (
+  id              uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_1_id       uuid        NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  user_2_id       uuid        NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  event_id        uuid        REFERENCES events (id) ON DELETE SET NULL,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  last_message_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_1_id, user_2_id),
+  CONSTRAINT no_self_chat  CHECK (user_1_id <> user_2_id),
+  CONSTRAINT ordered_users CHECK (user_1_id < user_2_id)
+);
+
+CREATE INDEX idx_conv_user1 ON conversations (user_1_id, last_message_at DESC);
+CREATE INDEX idx_conv_user2 ON conversations (user_2_id, last_message_at DESC);
+
+CREATE TABLE messages (
+  id              uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  conversation_id uuid        NOT NULL REFERENCES conversations (id) ON DELETE CASCADE,
+  sender_id       uuid        NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  content         text        NOT NULL,
+  is_read         boolean     NOT NULL DEFAULT false,
+  is_deleted      boolean     NOT NULL DEFAULT false,
+  sent_at         timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_messages_conv   ON messages (conversation_id, sent_at DESC);
+CREATE INDEX idx_messages_sender ON messages (sender_id);
+
+-- auto-update last_message_at في conversations
+CREATE OR REPLACE FUNCTION touch_conversation_last_message()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE conversations
+  SET last_message_at = NEW.sent_at
+  WHERE id = NEW.conversation_id;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_touch_last_message
+  AFTER INSERT ON messages
+  FOR EACH ROW EXECUTE FUNCTION touch_conversation_last_message();
+
+-- ============================================================
+--  MEDIA (صور وريلز)
+-- ============================================================
+
+CREATE TABLE media (
+  id               uuid       PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id         uuid       NOT NULL REFERENCES events (id) ON DELETE CASCADE,
+  uploader_id      uuid       NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  media_type       media_type NOT NULL DEFAULT 'photo',
+  url              text       NOT NULL,
+  thumbnail_url    text,
+  duration_seconds int,
+  views_count      int        NOT NULL DEFAULT 0,
+  likes_count      int        NOT NULL DEFAULT 0,
+  created_at       timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_media_event    ON media (event_id, created_at DESC);
+CREATE INDEX idx_media_uploader ON media (uploader_id);
+
+-- ============================================================
+--  REPORTS
+-- ============================================================
+
+CREATE TABLE reports (
+  id          uuid          PRIMARY KEY DEFAULT uuid_generate_v4(),
+  reporter_id uuid          NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  target_type report_target NOT NULL,
+  target_id   uuid          NOT NULL,
+  reason      varchar(200)  NOT NULL,
+  details     text,
+  status      report_status NOT NULL DEFAULT 'pending',
+  resolved_by uuid          REFERENCES users (id),
+  created_at  timestamptz   NOT NULL DEFAULT now(),
+  resolved_at timestamptz
+);
+
+CREATE INDEX idx_reports_status ON reports (status, created_at DESC);
+
+-- ============================================================
+--  NOTIFICATIONS
+-- ============================================================
+
+CREATE TABLE notifications (
+  id         uuid              PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id    uuid              NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  type       notification_type NOT NULL,
+  payload    jsonb             NOT NULL DEFAULT '{}',
+  is_read    boolean           NOT NULL DEFAULT false,
+  created_at timestamptz       NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_notif_user_unread ON notifications (user_id, is_read, created_at DESC);
+
+-- ============================================================
+--  SAMPLE QUERIES
+-- ============================================================
+
+-- 1. أحداث مفتوحة قريبة (2كم) مرتبة بالمسافة
+-- SELECT e.*, ST_Distance(e.location, ST_MakePoint(-9.5982, 30.4202)::geography) AS dist_meters
+-- FROM events e
+-- WHERE status = 'open'
+--   AND starts_at > now()
+--   AND ST_DWithin(e.location, ST_MakePoint(-9.5982, 30.4202)::geography, 2000)
+-- ORDER BY dist_meters
+-- LIMIT 20;
+
+-- 2. أحداث مخصصة حسب اهتمامات المستخدم
+-- SELECT DISTINCT e.*
+-- FROM events e
+-- JOIN interests i ON e.category = i.name
+-- JOIN user_interests ui ON ui.interest_id = i.id
+-- WHERE ui.user_id = '<user_uuid>'
+--   AND e.status = 'open'
+--   AND e.starts_at > now()
+-- ORDER BY e.starts_at;
+
+-- 3. أعلى المستخدمين تقييماً في مدينة
+-- SELECT username, reputation_score, total_reviews
+-- FROM users
+-- WHERE city = 'أكادير'
+--   AND is_active = true
+--   AND total_reviews >= 3
+-- ORDER BY reputation_score DESC
+-- LIMIT 10;
+
+-- 4. رسائل group chat للحدث (آخر 50)
+-- SELECT m.*, u.username, u.avatar_url
+-- FROM group_event_messages m
+-- JOIN users u ON u.id = m.sender_id
+-- WHERE m.event_id = '<event_uuid>'
+--   AND NOT m.is_deleted
+-- ORDER BY m.sent_at DESC
+-- LIMIT 50;
+
+-- 5. إنشاء محادثة مباشرة (أو تجاهل إن كانت موجودة)
+-- INSERT INTO conversations (user_1_id, user_2_id, event_id)
+-- VALUES (
+--   LEAST('<my_uuid>',    '<other_uuid>'),
+--   GREATEST('<my_uuid>', '<other_uuid>'),
+--   '<event_uuid>'
+-- )
+-- ON CONFLICT (user_1_id, user_2_id) DO NOTHING;
+
+-- 6. رسائل محادثة مباشرة بين مستخدمَين (آخر 50)
+-- SELECT m.*, u.username, u.avatar_url
+-- FROM messages m
+-- JOIN users u ON u.id = m.sender_id
+-- WHERE m.conversation_id = (
+--   SELECT id FROM conversations
+--   WHERE user_1_id = LEAST('<my_uuid>', '<other_uuid>')
+--     AND user_2_id = GREATEST('<my_uuid>', '<other_uuid>')
+-- )
+-- AND NOT m.is_deleted
+-- ORDER BY m.sent_at DESC
+-- LIMIT 50;
+
+-- 7. قائمة محادثات المستخدم مع آخر رسالة
+-- SELECT
+--   c.id,
+--   c.last_message_at,
+--   CASE WHEN c.user_1_id = '<my_uuid>' THEN u2.username ELSE u1.username END AS other_username,
+--   CASE WHEN c.user_1_id = '<my_uuid>' THEN u2.avatar_url ELSE u1.avatar_url END AS other_avatar,
+--   last_msg.content AS last_message
+-- FROM conversations c
+-- JOIN users u1 ON u1.id = c.user_1_id
+-- JOIN users u2 ON u2.id = c.user_2_id
+-- LEFT JOIN LATERAL (
+--   SELECT content FROM messages
+--   WHERE conversation_id = c.id AND NOT is_deleted
+--   ORDER BY sent_at DESC LIMIT 1
+-- ) last_msg ON true
+-- WHERE c.user_1_id = '<my_uuid>' OR c.user_2_id = '<my_uuid>'
+-- ORDER BY c.last_message_at DESC;

@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model conversations {
+  id                                   String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_1_id                            String     @db.Uuid
+  user_2_id                            String     @db.Uuid
+  event_id                             String?    @db.Uuid
+  created_at                           DateTime   @default(now()) @db.Timestamptz(6)
+  last_message_at                      DateTime   @default(now()) @db.Timestamptz(6)
+  events                               events?    @relation(fields: [event_id], references: [id], onUpdate: NoAction)
+  users_conversations_user_1_idTousers users      @relation("conversations_user_1_idTousers", fields: [user_1_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_conversations_user_2_idTousers users      @relation("conversations_user_2_idTousers", fields: [user_2_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages                             messages[]
+
+  @@unique([user_1_id, user_2_id])
+  @@index([user_1_id, last_message_at(sort: Desc)], map: "idx_conv_user1")
+  @@index([user_2_id, last_message_at(sort: Desc)], map: "idx_conv_user2")
+}
+
+model event_participants {
+  id        String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  event_id  String             @db.Uuid
+  user_id   String             @db.Uuid
+  status    participant_status @default(pending)
+  joined_at DateTime           @default(now()) @db.Timestamptz(6)
+  events    events             @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users     users              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([event_id, user_id])
+  @@index([event_id, status], map: "idx_ep_event")
+  @@index([user_id], map: "idx_ep_user")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model events {
+  id                   String                   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  host_id              String                   @db.Uuid
+  title                String                   @db.VarChar(120)
+  description          String?
+  category             String                   @db.VarChar(60)
+  location             Unsupported("geography")
+  address              String?
+  city                 String?                  @db.VarChar(100)
+  starts_at            DateTime                 @db.Timestamptz(6)
+  duration_minutes     Int                      @default(60)
+  max_participants     Int                      @default(10)
+  current_count        Int                      @default(1)
+  status               event_status             @default(open)
+  cover_image_url      String?
+  is_public            Boolean                  @default(true)
+  created_at           DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime                 @default(now()) @db.Timestamptz(6)
+  conversations        conversations[]
+  event_participants   event_participants[]
+  users                users                    @relation(fields: [host_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  group_event_messages group_event_messages[]
+  media                media[]
+  reviews              reviews[]
+
+  @@index([city], map: "idx_events_city")
+  @@index([host_id], map: "idx_events_host")
+  @@index([location], map: "idx_events_location", type: Gist)
+  @@index([starts_at], map: "idx_events_starts_at")
+  @@index([status], map: "idx_events_status")
+}
+
+model group_event_messages {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  event_id   String   @db.Uuid
+  sender_id  String   @db.Uuid
+  content    String
+  is_deleted Boolean  @default(false)
+  sent_at    DateTime @default(now()) @db.Timestamptz(6)
+  events     events   @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users    @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([event_id, sent_at(sort: Desc)], map: "idx_group_msg_event")
+  @@index([sender_id], map: "idx_group_msg_sender")
+}
+
+model interests {
+  id             Int              @id @default(autoincrement())
+  name           String           @unique @db.VarChar(60)
+  icon           String?          @db.VarChar(10)
+  color_hex      String?          @db.VarChar(7)
+  user_interests user_interests[]
+}
+
+model media {
+  id               String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  event_id         String     @db.Uuid
+  uploader_id      String     @db.Uuid
+  media_type       media_type @default(photo)
+  url              String
+  thumbnail_url    String?
+  duration_seconds Int?
+  views_count      Int        @default(0)
+  likes_count      Int        @default(0)
+  created_at       DateTime   @default(now()) @db.Timestamptz(6)
+  events           events     @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users            users      @relation(fields: [uploader_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([event_id, created_at(sort: Desc)], map: "idx_media_event")
+  @@index([uploader_id], map: "idx_media_uploader")
+}
+
+model messages {
+  id              String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  conversation_id String        @db.Uuid
+  sender_id       String        @db.Uuid
+  content         String
+  is_read         Boolean       @default(false)
+  is_deleted      Boolean       @default(false)
+  sent_at         DateTime      @default(now()) @db.Timestamptz(6)
+  conversations   conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users         @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([conversation_id, sent_at(sort: Desc)], map: "idx_messages_conv")
+  @@index([sender_id], map: "idx_messages_sender")
+}
+
+model notifications {
+  id         String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String            @db.Uuid
+  type       notification_type
+  payload    Json              @default("{}")
+  is_read    Boolean           @default(false)
+  created_at DateTime          @default(now()) @db.Timestamptz(6)
+  users      users             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, is_read, created_at(sort: Desc)], map: "idx_notif_user_unread")
+}
+
+model reports {
+  id                               String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  reporter_id                      String        @db.Uuid
+  target_type                      report_target
+  target_id                        String        @db.Uuid
+  reason                           String        @db.VarChar(200)
+  details                          String?
+  status                           report_status @default(pending)
+  resolved_by                      String?       @db.Uuid
+  created_at                       DateTime      @default(now()) @db.Timestamptz(6)
+  resolved_at                      DateTime?     @db.Timestamptz(6)
+  users_reports_reporter_idTousers users         @relation("reports_reporter_idTousers", fields: [reporter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_reports_resolved_byTousers users?        @relation("reports_resolved_byTousers", fields: [resolved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([status, created_at(sort: Desc)], map: "idx_reports_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model reviews {
+  id                                    String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  reviewer_id                           String   @db.Uuid
+  reviewed_user_id                      String   @db.Uuid
+  event_id                              String   @db.Uuid
+  rating                                Int      @db.SmallInt
+  comment                               String?
+  created_at                            DateTime @default(now()) @db.Timestamptz(6)
+  events                                events   @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_reviews_reviewed_user_idTousers users    @relation("reviews_reviewed_user_idTousers", fields: [reviewed_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_reviews_reviewer_idTousers      users    @relation("reviews_reviewer_idTousers", fields: [reviewer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([reviewer_id, reviewed_user_id, event_id])
+  @@index([event_id], map: "idx_reviews_event")
+  @@index([reviewed_user_id], map: "idx_reviews_reviewed_user")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+model user_interests {
+  user_id     String    @db.Uuid
+  interest_id Int
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  interests   interests @relation(fields: [interest_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, interest_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  id                                           String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  username                                     String                    @unique @db.VarChar(50)
+  email                                        String                    @unique @db.VarChar(255)
+  google_id                                    String?                   @unique @db.VarChar(255)
+  phone                                        String?                   @unique @db.VarChar(20)
+  password_hash                                String?
+  full_name                                    String?                   @db.VarChar(100)
+  bio                                          String?
+  avatar_url                                   String?
+  location                                     Unsupported("geography")?
+  country                                      String?                   @db.VarChar(255)
+  city                                         String?                   @db.VarChar(100)
+  reputation_score                             Float                     @default(5.0)
+  total_reviews                                Int                       @default(0)
+  is_verified                                  Boolean                   @default(false)
+  is_active                                    Boolean                   @default(false)
+  created_at                                   DateTime                  @default(now()) @db.Timestamptz(6)
+  last_active_at                               DateTime                  @default(now()) @db.Timestamptz(6)
+  conversations_conversations_user_1_idTousers conversations[]           @relation("conversations_user_1_idTousers")
+  conversations_conversations_user_2_idTousers conversations[]           @relation("conversations_user_2_idTousers")
+  event_participants                           event_participants[]
+  events                                       events[]
+  group_event_messages                         group_event_messages[]
+  media                                        media[]
+  messages                                     messages[]
+  notifications                                notifications[]
+  reports_reports_reporter_idTousers           reports[]                 @relation("reports_reporter_idTousers")
+  reports_reports_resolved_byTousers           reports[]                 @relation("reports_resolved_byTousers")
+  reviews_reviews_reviewed_user_idTousers      reviews[]                 @relation("reviews_reviewed_user_idTousers")
+  reviews_reviews_reviewer_idTousers           reviews[]                 @relation("reviews_reviewer_idTousers")
+  user_interests                               user_interests[]
+
+  @@index([total_reviews], map: "idx_user_total_reviews")
+  @@index([city], map: "idx_users_city")
+  @@index([location], map: "idx_users_location", type: Gist)
+  @@index([username(ops: raw("gin_trgm_ops"))], map: "idx_users_username", type: Gin)
+}
+
+enum event_status {
+  draft
+  open
+  full
+  ongoing
+  completed
+  cancelled
+}
+
+enum media_type {
+  photo
+  reel
+  video
+}
+
+enum notification_type {
+  event_join_request
+  event_accepted
+  event_full
+  new_message
+  new_review
+  event_starting_soon
+  event_cancelled
+  badge_earned
+}
+
+enum participant_status {
+  pending
+  accepted
+  rejected
+  left
+}
+
+enum report_status {
+  pending
+  reviewed
+  resolved
+  dismissed
+}
+
+enum report_target {
+  user
+  event
+  media
+  message
+}
