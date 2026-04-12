@@ -27,23 +27,26 @@ export class CompleteUserHandler implements ICommandHandler<CompleteUserImpl> {
         }
 
         const data = new User(
-            command.id,
-            user.username,
-            user.email,
-            user.google_id,
-            command.phone,
-            user.password_hash,
-            command.full_name,
-            command.bio,
-            user.avatar_url,
-            command.location,
-            command.country,
-            command.city,
-            user.reputation_score,
-            user.total_reviews,
-            user.is_verified,
-            true,
-            user.created_at
+           command.id,
+           user.username,
+           user.email,
+           user.google_id,
+           user.phone,
+           user.password_hash,
+           command.full_name,
+           command.bio,
+           user.avatar_url,
+           command.lat,
+           command.lng,
+           command.country,
+           command.city,
+           user.reputation_score,
+           user.total_reviews,
+           user.is_verified,
+           user.is_active,
+           user.created_at,
+           user.role,
+           user.refresh_token
         )
 
         try {

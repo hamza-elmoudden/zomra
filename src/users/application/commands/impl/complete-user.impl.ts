@@ -6,7 +6,8 @@ export class CompleteUserImpl{
     public full_name?: string,
     public phone?: string,
     public bio?: string,
-    public location?: any,
+    public lat?:number,
+    public lng?:number,
     public country?: string,
     public city?: string,
     ){}
