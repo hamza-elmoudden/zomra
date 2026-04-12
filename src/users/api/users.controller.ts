@@ -1,27 +1,21 @@
-import { Controller, Get, Req } from "@nestjs/common";
+import { Controller, Get, Req, UseGuards } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import { findUserByIdImpl } from "../application/queries/impl/find-user-byId.impl";
 import { User } from "../domain/entities/user.entity";
+import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
+import { CurrentUser } from "src/auth/decorators/decorators";
 
 
-
-
-@Controller('Users')
-export class UsersController{
+@Controller('users')
+export class UsersController {
     constructor(
-        private readonly commandBus:CommandBus,
-        private readonly queryBus:QueryBus
-    ){}
-
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus,
+    ) {}
 
     @Get('me')
-    async findUserById(@Req() req:any):Promise<User>{
-
-
-        const user = await this.queryBus.execute(new findUserByIdImpl(req.user.id))
-
-        
-
-        return user
+    @UseGuards(JwtAuthGuard)
+    async findUserById(@CurrentUser() user: User): Promise<User> {
+        return this.queryBus.execute(new findUserByIdImpl(user.id));
     }
 }
