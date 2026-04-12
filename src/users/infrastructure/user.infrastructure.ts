@@ -1,3 +1,4 @@
+import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
 import { User } from "../domain/entities/user.entity";
 import { UserRepository } from "../domain/repositories/user.repository";
@@ -14,7 +15,8 @@ type UserEntity = {
     full_name?: string;
     bio?: string;
     avatar_url?: string;
-    location?: any;
+    lat?:number,
+    lng?:number,
     country?: string;
     city?: string;
     reputation_score: number;
@@ -24,6 +26,7 @@ type UserEntity = {
     created_at: Date;
 };
 
+@Injectable()
 export class UserInfrastructure implements UserRepository {
 
     constructor(
@@ -42,13 +45,16 @@ export class UserInfrastructure implements UserRepository {
             data.bio ?? undefined,
             data.avatar_url ?? undefined,
             data.location,
-            data.country ?? undefined,
+            data.lat ?? undefined,
+            data.lng ?? undefined,
             data.city ?? undefined,
             data.reputation_score,
             data.total_reviews,
             data.is_verified,
             data.is_active,
             data.created_at,
+            data.role ?? 'user',
+            data.refresh_token ?? undefined,
         );
     }
 
@@ -79,10 +85,10 @@ export class UserInfrastructure implements UserRepository {
                 avatar_url: user.avatar_url,
                 country: user.country,
                 city: user.city,
-                location: user.location,
                 reputation_score: user.reputation_score,
                 is_verified: user.is_verified,
                 is_active: user.is_active,
+
                 
             },
         });
@@ -102,8 +108,9 @@ export class UserInfrastructure implements UserRepository {
                 avatar_url: user.avatar_url,
                 country: user.country,
                 city: user.city,
-                location: user.location,
                 reputation_score: user.reputation_score,
+                lat:user.lat,
+                lng:user.lng
    
             },
         })
