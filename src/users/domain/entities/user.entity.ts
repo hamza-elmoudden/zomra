@@ -12,7 +12,8 @@ export class User {
     public full_name?: string,
     public bio?: string,
     public avatar_url?: string,
-    public location?: any, 
+    public lat?:number,                                         
+    public lng?:number,
     public country?: string,
     public city?: string,
     public reputation_score: number = 5.0,
@@ -20,5 +21,7 @@ export class User {
     public is_verified: boolean = false,
     public is_active: boolean = true,
     public created_at: Date = new Date(),
+    public role: string = 'user',
+    public refresh_token?: string,
   ) {}
 }
