@@ -1,154 +1,240 @@
-import { Injectable } from "@nestjs/common";
-import { PrismaService } from "src/prisma/prisma.service";
-import { User } from "../domain/entities/user.entity";
-import { UserRepository } from "../domain/repositories/user.repository";
-
-
-
-type UserEntity = {
-    id: string;
-    username: string;
-    email: string;
-    google_id?: string;
-    phone?: string;
-    password_hash?: string;
-    full_name?: string;
-    bio?: string;
-    avatar_url?: string;
-    lat?:number,
-    lng?:number,
-    country?: string;
-    city?: string;
-    reputation_score: number;
-    total_reviews: number;
-    is_verified: boolean;
-    is_active: boolean;
-    created_at: Date;
-};
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { User } from '../domain/entities/user.entity';
+import { UserRepository } from '../domain/repositories/user.repository';
 
 @Injectable()
 export class UserInfrastructure implements UserRepository {
+  constructor(private readonly prisma: PrismaService) {}
 
-    constructor(
-        private readonly impl: PrismaService
-    ) { }
+  // ─── Mapping ────────────────────────────────────────────────
+  private mapToUser(data: any): User {
+    return new User(
+      data.id,
+      data.username,
+      data.email,
+      data.google_id ?? undefined,
+      data.phone ?? undefined,
+      data.password_hash ?? undefined,
+      data.full_name ?? undefined,
+      data.bio ?? undefined,
+      data.avatar_url ?? undefined,
+      data.lat ?? undefined,
+      data.lng ?? undefined,
+      data.country ?? undefined,
+      data.city ?? undefined,
+      data.reputation_score ?? 5.0,
+      data.total_reviews ?? 0,
+      data.is_verified ?? false,
+      data.is_active ?? true,
+      data.created_at ?? new Date(),
+      data.role ?? 'user',
+      data.refresh_token ?? undefined,
+    );
+  }
 
-    mapToUser(data: any): User {
-        return new User(
-            data.id,
-            data.username,
-            data.email,
-            data.google_id ?? undefined,
-            data.phone ?? undefined,
-            data.password_hash ?? undefined,
-            data.full_name ?? undefined,
-            data.bio ?? undefined,
-            data.avatar_url ?? undefined,
-            data.location,
-            data.lat ?? undefined,
-            data.lng ?? undefined,
-            data.city ?? undefined,
-            data.reputation_score,
-            data.total_reviews,
-            data.is_verified,
-            data.is_active,
-            data.created_at,
-            data.role ?? 'user',
-            data.refresh_token ?? undefined,
-        );
+  // ─── Create ─────────────────────────────────────────────────
+  async create(user: User): Promise<string> {
+    try {
+      const data = await this.prisma.users.create({
+        data: {
+          username: user.username,
+          email: user.email,
+          google_id: user.google_id,
+          full_name: user.full_name,
+          avatar_url: user.avatar_url,
+          is_active: false,
+        },
+      });
+      return data.id;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to create user');
     }
+  }
 
+  // ─── Complete profile ────────────────────────────────────────
+  async complete(user: User): Promise<boolean> {
+    try {
+      const data = await this.prisma.users.update({
+        where: { id: user.id },
+        data: {
+          phone: user.phone,
+          full_name: user.full_name,
+          bio: user.bio,
+          avatar_url: user.avatar_url,
+          lat: user.lat,
+          lng: user.lng,
+          country: user.country,
+          city: user.city,
+          reputation_score: user.reputation_score,
+          is_verified: user.is_verified,
+          is_active: user.is_active,
+        },
+      });
+      return !!data;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to complete user profile');
+    }
+  }
 
-    async create(user: User): Promise<string> {
-        const data = await this.impl.users.create({
-            data: {
-                username: user.username,
-                email: user.email,
-                google_id: user.google_id,
-                full_name: user.full_name,
-                avatar_url: user.avatar_url,
-            },
+  // ─── Update ─────────────────────────────────────────────────
+  async update(user: User): Promise<boolean> {
+    try {
+      const data = await this.prisma.users.update({
+        where: { id: user.id },
+        data: {
+          phone: user.phone,
+          full_name: user.full_name,
+          bio: user.bio,
+          avatar_url: user.avatar_url,
+          lat: user.lat,
+          lng: user.lng,
+          country: user.country,
+          city: user.city,
+          reputation_score: user.reputation_score,
+        },
+      });
+      return !!data;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to update user');
+    }
+  }
+
+  // ─── Find by ID ──────────────────────────────────────────────
+  async findById(id: string): Promise<User | null> {
+    try {
+      const data = await this.prisma.users.findUnique({ where: { id } });
+      return data ? this.mapToUser(data) : null;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to find user by ID');
+    }
+  }
+
+  // ─── Find by Email ───────────────────────────────────────────
+  async findByEmail(email: string): Promise<User | null> {
+    try {
+      const data = await this.prisma.users.findUnique({ where: { email } });
+      return data ? this.mapToUser(data) : null;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to find user by email');
+    }
+  }
+
+  // ─── Find by Google ID ───────────────────────────────────────
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    try {
+      const data = await this.prisma.users.findFirst({
+        where: { google_id: googleId },
+      });
+      return data ? this.mapToUser(data) : null;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to find user by Google ID');
+    }
+  }
+
+  // ─── Find by City ────────────────────────────────────────────
+  async findByCity(city: string): Promise<User[] | null> {
+    try {
+      const data = await this.prisma.users.findMany({ where: { city } });
+      return data.length ? data.map((d) => this.mapToUser(d)) : null;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to find users by city');
+    }
+  }
+
+  // ─── Link Google ID to existing account ─────────────────────
+  async linkGoogleId(userId: string, googleId: string): Promise<User> {
+    try {
+      const data = await this.prisma.users.update({
+        where: { id: userId },
+        data: { google_id: googleId },
+      });
+      return this.mapToUser(data);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to link Google account');
+    }
+  }
+
+  // ─── Refresh token ───────────────────────────────────────────
+  async saveRefreshToken(userId: string, hashedToken: string): Promise<void> {
+    try {
+      await this.prisma.users.update({
+        where: { id: userId },
+        data: { refresh_token: hashedToken },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to save refresh token');
+    }
+  }
+
+  async clearRefreshToken(userId: string): Promise<void> {
+    try {
+      await this.prisma.users.update({
+        where: { id: userId },
+        data: { refresh_token: null },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to clear refresh token');
+    }
+  }
+
+  // ─── Last login ──────────────────────────────────────────────
+  async updateLastLogin(userId: string): Promise<void> {
+    try {
+      await this.prisma.users.update({
+        where: { id: userId },
+        data: { last_login: new Date() },
+      }); 
+    } catch {
+      // last_login field may not exist in all schema versions — silently ignore
+    }
+  }
+
+  // ─── Find or create Google user ──────────────────────────────
+  async findOrCreateGoogleUser(params: {
+    googleId: string;
+    email: string;
+    fullName: string;
+    avatarUrl?: string;
+  }): Promise<{ user: User; isNew: boolean }> {
+    try {
+      // 1. Check by google_id
+      const byGoogleId = await this.prisma.users.findFirst({
+        where: { google_id: params.googleId },
+      });
+      if (byGoogleId) {
+        return { user: this.mapToUser(byGoogleId), isNew: false };
+      }
+
+      // 2. Check by email — link google_id to existing account
+      const byEmail = await this.prisma.users.findUnique({
+        where: { email: params.email },
+      });
+      if (byEmail) {
+        const updated = await this.prisma.users.update({
+          where: { id: byEmail.id },
+          data: { google_id: params.googleId },
         });
+        return { user: this.mapToUser(updated), isNew: false };
+      }
 
-        return data.id;
+      // 3. Create brand-new user (profile completion pending)
+      const username = `${params.email.split('@')[0]}_${Date.now()}`;
+      const created = await this.prisma.users.create({
+        data: {
+          email: params.email,
+          google_id: params.googleId,
+          full_name: params.fullName,
+          avatar_url: params.avatarUrl,
+          username,
+          is_active: false,
+        },
+      });
+      return { user: this.mapToUser(created), isNew: true };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to find or create Google user',
+      );
     }
-
-    async complete(user: User): Promise<boolean> {
-        const data = await this.impl.users.update({
-            where:{
-                id:user.id
-            },
-            data: {
-                phone: user.phone,
-                full_name: user.full_name,
-                bio: user.bio,
-                avatar_url: user.avatar_url,
-                country: user.country,
-                city: user.city,
-                reputation_score: user.reputation_score,
-                is_verified: user.is_verified,
-                is_active: user.is_active,
-
-                
-            },
-        });
-
-        return data ? true : false;
-    }
-
-    async update(user:User):Promise<boolean>{
-        const data = await this.impl.users.update({
-            where:{
-                id:user.id
-            },
-            data: {
-                phone: user.phone,
-                full_name: user.full_name,
-                bio: user.bio,
-                avatar_url: user.avatar_url,
-                country: user.country,
-                city: user.city,
-                reputation_score: user.reputation_score,
-                lat:user.lat,
-                lng:user.lng
-   
-            },
-        })
-
-        return data ? true : false
-    }
-
-    async findById(id: string): Promise<User | null> {
-        const data = await this.impl.users.findUnique({
-            where: {
-                id
-            }
-        })
-
-        return data ? this.mapToUser(data) : null
-
-    }
-
-
-    async findByEmail(email: string): Promise<User | null> {
-        const data = await this.impl.users.findUnique({
-            where:{
-                email
-            }
-        })
-
-        return data ? this.mapToUser(data) : null
-    }
-
-
-    async findByCity(city: string): Promise<User[] | null> {
-        const data = await this.impl.users.findMany({
-            where:{
-                city
-            }
-        })
-
-        return data ? data.map(d => this.mapToUser(d)) : null
-    }
-
+  }
 }
