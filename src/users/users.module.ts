@@ -6,20 +6,18 @@ import { ID_USER_REPOSITORY } from './domain/repositories/user.repository';
 import { UserInfrastructure } from './infrastructure/user.infrastructure';
 import { findUserByIdHandler } from './application/queries/handler/find-user-byId.handler';
 import { CompleteUserHandler } from './application/commands/handler/complete-user.handler';
-import { UsersService } from './users.service';
 
 @Module({
-    controllers: [UsersController],
-    imports: [PrismaModule, CqrsModule],
-    providers: [
-        {
-            provide: ID_USER_REPOSITORY,
-            useClass: UserInfrastructure,
-        },
-        findUserByIdHandler,
-        CompleteUserHandler,
-        UsersService,
-    ],
-    exports: [UsersService],
+  imports: [PrismaModule, CqrsModule],
+  controllers: [UsersController],
+  providers: [
+    {
+      provide: ID_USER_REPOSITORY,
+      useClass: UserInfrastructure,
+    },
+    findUserByIdHandler,
+    CompleteUserHandler,
+  ],
+  exports: [ID_USER_REPOSITORY],  // AuthModule strategies inject this token
 })
 export class UsersModule {}
