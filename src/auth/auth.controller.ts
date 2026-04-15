@@ -38,7 +38,13 @@ export class AuthController {
   // ─────────────────────────────────────────────────────────────
   @Get('google')
   @UseGuards(GoogleAuthGuard)
-  googleRedirect() { }
+  googleRedirect(@Req() req: any) {
+    const platform = req.query.platform;
+
+    return {
+      state: JSON.stringify({ platform }),
+    };
+  }
 
   // ─────────────────────────────────────────────────────────────
   //  GET /auth/google/callback
@@ -48,23 +54,21 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   async googleCallback(@Req() req: any, @Res() res: Response) {
-    const isMobile = req.query.platform === 'mobile'
+    const param = JSON.parse(req.query.state || '{}')
     const tokens = await this.authService.googleLogin(req.user as User);
 
     const base = process.env.FRONTEND_URL;
     const isProd = process.env.NODE_ENV === 'production';
 
+    console.log('param ====> :', param)
 
-    if (!isMobile) {
-      const redirectUrl = `${base}/auth/success?access_token=${tokens.accessToken}&refresh_token=${tokens.refreshToken}`;
-      return res.redirect(redirectUrl);
 
-    } else {
-      return res.redirect(
-      `safa://auth/success?access_token=${tokens.accessToken}&refresh_token=${tokens.refreshToken}`
-    );
-    
-    }
+    const redirectUrl = `${base}/auth/success?access_token=${tokens.accessToken}&refresh_token=${tokens.refreshToken}`;
+    return res.redirect(redirectUrl);
+
+
+
+
   }
 
   // ─────────────────────────────────────────────────────────────

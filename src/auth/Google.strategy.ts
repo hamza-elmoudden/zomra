@@ -4,13 +4,15 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
-import { UsersService } from 'src/users/users.service';
+import { Inject } from '@nestjs/common';
+import { ID_USER_REPOSITORY, UserRepository } from 'src/users/domain/repositories/user.repository';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(
     config: ConfigService,
-    private readonly usersService: UsersService,
+    @Inject(ID_USER_REPOSITORY)
+    private readonly userRepo: UserRepository,
   ) {
     super({
       clientID: config.getOrThrow('GOOGLE_CLIENT_ID'),
@@ -26,14 +28,19 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     profile: any,
     done: VerifyCallback,
   ) {
-    const { id, emails, displayName } = profile;
+    try {
+      const { id, emails, displayName, photos } = profile;
 
-    const { user } = await this.usersService.findOrCreateGoogleUser({
-      googleId: id,
-      email: emails[0].value,
-      fullName: displayName,
-    });
+      const { user } = await this.userRepo.findOrCreateGoogleUser({
+        googleId: id,
+        email: emails[0].value,
+        fullName: displayName,
+        avatarUrl: photos?.[0]?.value,
+      });
 
-    done(null, user);
+      done(null, user);
+    } catch (error) {
+      done(error, undefined);
+    }
   }
 }
