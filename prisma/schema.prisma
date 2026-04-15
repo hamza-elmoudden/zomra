@@ -1,6 +1,8 @@
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
+  previewFeatures = ["partialIndexes"]
+  moduleFormat    = "cjs"
 }
 
 datasource db {
@@ -216,6 +218,7 @@ model users {
   last_active_at                               DateTime                  @default(now()) @db.Timestamptz(6)
   role                                         user_role?
   refresh_token                                String?
+  last_login                                   DateTime? 
   conversations_conversations_user_1_idTousers conversations[]           @relation("conversations_user_1_idTousers")
   conversations_conversations_user_2_idTousers conversations[]           @relation("conversations_user_2_idTousers")
   event_participants                           event_participants[]
