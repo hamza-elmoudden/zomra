@@ -109,8 +109,11 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return tokens;
-    // returns: { accessToken, refreshToken, expiresIn }
+    // return tokens;
+    return { 
+      accessToken:tokens.accessToken, 
+      refreshToken:tokens.refreshToken 
+    }
   }
 
   // ─────────────────────────────────────────────────────────────
