@@ -60,7 +60,6 @@ export class AuthController {
     const base = process.env.FRONTEND_URL;
     const isProd = process.env.NODE_ENV === 'production';
 
-    console.log('param ====> :', param)
 
 
     const redirectUrl = `${base}/auth/success?access_token=${tokens.accessToken}&refresh_token=${tokens.refreshToken}`;
