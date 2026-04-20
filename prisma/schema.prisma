@@ -1,12 +1,11 @@
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
-  previewFeatures = ["partialIndexes"]
-  moduleFormat    = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -43,27 +42,27 @@ model event_participants {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model events {
-  id                   String                   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  host_id              String                   @db.Uuid
-  title                String                   @db.VarChar(120)
+  id                   String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  host_id              String                 @db.Uuid
+  title                String                 @db.VarChar(120)
   description          String?
-  category             String                   @db.VarChar(60)
+  category             String                 @db.VarChar(60)
+  address              String?
+  city                 String?                @db.VarChar(100)
+  starts_at            DateTime               @db.Timestamptz(6)
+  duration_minutes     Int                    @default(60)
+  max_participants     Int                    @default(10)
+  current_count        Int                    @default(1)
+  status               event_status           @default(open)
+  cover_image_url      String?
+  is_public            Boolean                @default(true)
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime               @default(now()) @db.Timestamptz(6)
   lat                  Float?
   lng                  Float?
-  address              String?
-  city                 String?                  @db.VarChar(100)
-  starts_at            DateTime                 @db.Timestamptz(6)
-  duration_minutes     Int                      @default(60)
-  max_participants     Int                      @default(10)
-  current_count        Int                      @default(1)
-  status               event_status             @default(open)
-  cover_image_url      String?
-  is_public            Boolean                  @default(true)
-  created_at           DateTime                 @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime                 @default(now()) @db.Timestamptz(6)
   conversations        conversations[]
   event_participants   event_participants[]
-  users                users                    @relation(fields: [host_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                users                  @relation(fields: [host_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   group_event_messages group_event_messages[]
   media                media[]
   reviews              reviews[]
@@ -197,40 +196,40 @@ model user_interests {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model users {
-  id                                           String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  username                                     String                    @unique @db.VarChar(50)
-  email                                        String                    @unique @db.VarChar(255)
-  google_id                                    String?                   @unique @db.VarChar(255)
-  phone                                        String?                   @unique @db.VarChar(20)
+  id                                           String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  username                                     String                 @unique @db.VarChar(50)
+  email                                        String                 @unique @db.VarChar(255)
+  google_id                                    String?                @unique @db.VarChar(255)
+  phone                                        String?                @unique @db.VarChar(20)
   password_hash                                String?
-  full_name                                    String?                   @db.VarChar(100)
+  full_name                                    String?                @db.VarChar(100)
   bio                                          String?
   avatar_url                                   String?
-  lat                                          Float?
-  lng                                          Float?
-  country                                      String?                   @db.VarChar(255)
-  city                                         String?                   @db.VarChar(100)
-  reputation_score                             Float                     @default(5.0)
-  total_reviews                                Int                       @default(0)
-  is_verified                                  Boolean                   @default(false)
-  is_active                                    Boolean                   @default(false)
-  created_at                                   DateTime                  @default(now()) @db.Timestamptz(6)
-  last_active_at                               DateTime                  @default(now()) @db.Timestamptz(6)
+  country                                      String?                @db.VarChar(255)
+  city                                         String?                @db.VarChar(100)
+  reputation_score                             Float                  @default(5.0)
+  total_reviews                                Int                    @default(0)
+  is_verified                                  Boolean                @default(false)
+  is_active                                    Boolean                @default(false)
+  created_at                                   DateTime               @default(now()) @db.Timestamptz(6)
+  last_active_at                               DateTime               @default(now()) @db.Timestamptz(6)
   role                                         user_role?
   refresh_token                                String?
-  last_login                                   DateTime? 
-  conversations_conversations_user_1_idTousers conversations[]           @relation("conversations_user_1_idTousers")
-  conversations_conversations_user_2_idTousers conversations[]           @relation("conversations_user_2_idTousers")
+  lat                                          Float?
+  lng                                          Float?
+  last_login                                   DateTime?
+  conversations_conversations_user_1_idTousers conversations[]        @relation("conversations_user_1_idTousers")
+  conversations_conversations_user_2_idTousers conversations[]        @relation("conversations_user_2_idTousers")
   event_participants                           event_participants[]
   events                                       events[]
   group_event_messages                         group_event_messages[]
   media                                        media[]
   messages                                     messages[]
   notifications                                notifications[]
-  reports_reports_reporter_idTousers           reports[]                 @relation("reports_reporter_idTousers")
-  reports_reports_resolved_byTousers           reports[]                 @relation("reports_resolved_byTousers")
-  reviews_reviews_reviewed_user_idTousers      reviews[]                 @relation("reviews_reviewed_user_idTousers")
-  reviews_reviews_reviewer_idTousers           reviews[]                 @relation("reviews_reviewer_idTousers")
+  reports_reports_reporter_idTousers           reports[]              @relation("reports_reporter_idTousers")
+  reports_reports_resolved_byTousers           reports[]              @relation("reports_resolved_byTousers")
+  reviews_reviews_reviewed_user_idTousers      reviews[]              @relation("reviews_reviewed_user_idTousers")
+  reviews_reviews_reviewer_idTousers           reviews[]              @relation("reviews_reviewer_idTousers")
   user_interests                               user_interests[]
 
   @@index([total_reviews], map: "idx_user_total_reviews")
