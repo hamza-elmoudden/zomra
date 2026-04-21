@@ -1,4 +1,6 @@
 
+export const INTEREST_KAY = 'INTEREST_KAY'
+
 
 export class Interests{
     constructor(
