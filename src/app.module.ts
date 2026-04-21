@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { UserinterestsModule } from './userinterests/userinterests.module';
+import { InterestsModule } from './interests/interests.module';
  
 
 @Module({
@@ -17,6 +18,7 @@ import { UserinterestsModule } from './userinterests/userinterests.module';
     UsersModule,
     AuthModule,
     UserinterestsModule,
+    InterestsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
