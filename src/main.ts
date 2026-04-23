@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
+import { ValidationPipe } from '@nestjs/common';
 
 
 async function bootstrap() {
@@ -9,10 +10,18 @@ async function bootstrap() {
   // Required for reading JWT from cookies (JwtStrategy + JwtRefreshStrategy)
   app.use(cookieParser());
 
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+    }),
+  );
+
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3001',
     credentials: true,
   });
+
+
 
   await app.listen(process.env.PORT ?? 3000);
 }
