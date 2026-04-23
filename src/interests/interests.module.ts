@@ -4,8 +4,16 @@ import { INTEREST_KAY } from './domain/entities/interests.entities';
 import { InterestsInfrastructure } from './infrastructure/interests.infrastructure';
 import { GetInterestsByIdHandler } from './application/queries/handler/get.interestsByid.handler';
 import { GetAllInterestsHandler } from './application/queries/handler/getall.interests.handler';
+import { PrismaModule } from 'src/prisma/prisma.module';
+import { InterestsController } from './api/interests.controller';
 
 @Module({
+    controllers:[
+        InterestsController
+    ],
+    imports:[
+        PrismaModule,
+    ],
     providers:[
         CreateInterestsHandler,
         GetInterestsByIdHandler,
