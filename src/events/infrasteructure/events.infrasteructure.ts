@@ -8,71 +8,95 @@ export class EventsInfrastructure implements EventsRepositories {
 
 
     constructor(
-        private readonly prisma:PrismaService
-    ){}
+        private readonly prisma: PrismaService
+    ) { }
+    
 
     mapToEvents(event: events): Events {
-    return new Events(
-        event.id,
-        event.host_id,
-        event.title,
-        event.category,
-        event.starts_at,
+        return new Events(
+            event.id,
+            event.host_id,
+            event.title,
+            event.category,
+            event.starts_at,
 
-        event.duration_minutes,
-        event.max_participants,
-        event.current_count,
+            event.duration_minutes,
+            event.max_participants,
+            event.current_count,
 
-        event.status,
-        event.is_public,
+            event.status,
+            event.is_public,
 
-        event.description,
-        event.address,
-        event.city,
+            event.description,
+            event.address,
+            event.city,
 
-        event.cover_image_url,
+            event.cover_image_url,
 
-        event.created_at,
-        event.updated_at,
+            event.created_at,
+            event.updated_at,
 
-        event.lat,
-        event.lng
-    );
-}
+            event.lat,
+            event.lng
+        );
+    }
 
-async create(data: Events): Promise < Events > {
-    const events = await this.prisma.events.create({
-        data
-    })
+    async create(data: Events): Promise<Events> {
+        const events = await this.prisma.events.create({
+            data
+        })
 
-    return this.mapToEvents(events)
-}
+        return this.mapToEvents(events)
+    }
 
-async findById(id: string): Promise < Events | null > {
-    const events = await this.prisma.events.findUnique({
-        where:{
-            id
-        }
-    })
+    async findById(id: string): Promise<Events | null> {
+        const events = await this.prisma.events.findUnique({
+            where: {
+                id
+            }
+        })
 
-    return events ? this.mapToEvents(events) : null
-}
+        return events ? this.mapToEvents(events) : null
+    }
 
-async findByCity(city: string): Promise < Events[] | [] > {
-    const events = await this.prisma.events.findMany({
-        where:{
-            city
-        }
-    })
+    async findByCity(city: string): Promise<Events[] | []> {
+        const events = await this.prisma.events.findMany({
+            where: {
+                city
+            }
+        })
 
-    return events ? events.map(itm => this.mapToEvents(events)) : []
-}
+        return events ? events.map(itm => this.mapToEvents(itm)) : []
+    }
 
-findByLocation(lat: number, lng: number): Promise < Events[] | [] > {
-    throw new Error("Method not implemented.");
-}
+    async findByLocation(lat: number, lng: number): Promise<Events[] | []> {
+        const events = await this.prisma.events.findMany({
+            where:{
+                lat,
+                lng
+            }
+        })
 
-findByCategory(category: string): Promise < Events[] | [] > {
-    throw new Error("Method not implemented.");
-}
+        return events ? events.map(itm => this.mapToEvents(itm)) : []
+    }
+
+    async findByCategory(category: string): Promise<Events[] | []> {
+         const events = await this.prisma.events.findMany({
+            where:{
+                category
+            }
+        })
+
+        return events ? events.map(itm => this.mapToEvents(itm)) : []
+    }
+
+    async findByUser(host_id: string): Promise<Events[] | []> {
+        const events = await this.prisma.events.findMany({
+            where:{
+                host_id
+            }
+        })
+
+        return events ? events.map(itm => this.mapToEvents(itm)) : []
+    }
 }
