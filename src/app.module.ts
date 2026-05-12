@@ -8,8 +8,8 @@ import { AuthModule } from './auth/auth.module';
 import { UserinterestsModule } from './userinterests/userinterests.module';
 import { InterestsModule } from './interests/interests.module';
 import { EventsModule } from './events/events.module';
-import { CqrsModule } from '@nestjs/cqrs';
- 
+import { ReviewsModule } from './reviews/reviews.module';
+import { MessagingModule } from './messaging/messaging.module';
 
 @Module({
   imports: [
@@ -22,6 +22,8 @@ import { CqrsModule } from '@nestjs/cqrs';
     UserinterestsModule,
     InterestsModule,
     EventsModule,
+    ReviewsModule,
+    MessagingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
