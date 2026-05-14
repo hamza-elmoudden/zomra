@@ -1,28 +1,33 @@
+import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
 import { Interests } from "../domain/entities/interests.entities";
 import { InterestsRepositories } from "../domain/repositories/interests.repositories";
 
-
-
-
+@Injectable()
 export class InterestsInfrastructure  implements InterestsRepositories{
     constructor(
         private readonly prisma:PrismaService
     ){}
 
 
-    mapToInterests(data:any){
-        return new Interests(data.id,data.name,data.icon,data.color_hex)
+    mapToInterests(data: any): Interests {
+        return new Interests(
+            data.id,
+            data.name,
+            data.icon ?? undefined,
+            data.color_hex ?? undefined,
+        )
     }
 
     async create(data: Interests): Promise<Interests> {
-        return await this.prisma.interests.create({
+        const result = await this.prisma.interests.create({
             data:{
                 name:data.name,
                 icon:data.icon,
                 color_hex:data.color_hex
             }
         })
+        return this.mapToInterests(result)
     }
 
 
@@ -45,23 +50,23 @@ export class InterestsInfrastructure  implements InterestsRepositories{
 
 
     async getById(id: number): Promise<Interests | null> {
-       const interests = await this.prisma.interests.findUnique({
+       const result = await this.prisma.interests.findUnique({
         where:{
             id
         }
        })
 
-       return interests
+       return result ? this.mapToInterests(result) : null
     }
 
 
     async getByName(name: string): Promise<Interests | null> {
-       const interests = await this.prisma.interests.findUnique({
+       const result = await this.prisma.interests.findUnique({
         where:{
             name
         }
        })
 
-       return interests
+       return result ? this.mapToInterests(result) : null
     }
 }
