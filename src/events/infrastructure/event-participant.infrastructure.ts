@@ -1,9 +1,11 @@
+import { Injectable } from "@nestjs/common";
 import { event_participants } from "generated/prisma/client";
 import { EventParticipant } from "../domain/entities/event-participant.entity";
 import { EventParticipantRepository } from "../domain/repositories/event-participant.repository";
 import { PrismaService } from "src/prisma/prisma.service";
 import { participant_status } from "generated/prisma/enums";
 
+@Injectable()
 export class EventParticipantInfrastructure implements EventParticipantRepository {
 
     constructor(
