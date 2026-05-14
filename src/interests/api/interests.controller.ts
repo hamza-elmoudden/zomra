@@ -43,7 +43,7 @@ export class InterestsController{
     @Roles('admin')
     async delete(@Param("id") id:number,@Req() req:any){
 
-        return await this.commandBus.execute(new DeleteInterestsImpl(req.user.id,id))
+        return await this.queryBus.execute(new DeleteInterestsImpl(req.user.id,id))
 
     }
 
