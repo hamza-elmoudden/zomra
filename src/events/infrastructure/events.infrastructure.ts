@@ -1,3 +1,4 @@
+import { Injectable } from "@nestjs/common";
 import { events } from "generated/prisma/client";
 import { Events } from "../domain/entities/events.entities";
 import { EventsRepositories } from "../domain/repositories/events.repositories";
@@ -14,6 +15,7 @@ function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+@Injectable()
 export class EventsInfrastructure implements EventsRepositories {
 
 
