@@ -1,7 +1,6 @@
 generator client {
   provider        = "prisma-client"
   output          = "../generated/prisma"
-  previewFeatures = ["partialIndexes"]
   moduleFormat    = "cjs"
 }
 
@@ -289,4 +288,5 @@ enum report_target {
 enum user_role {
   user
   admin
+  observer
 }
