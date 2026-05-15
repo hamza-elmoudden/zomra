@@ -10,6 +10,7 @@ import { InterestsModule } from './interests/interests.module';
 import { EventsModule } from './events/events.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { MessagingModule } from './messaging/messaging.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MessagingModule } from './messaging/messaging.module';
     EventsModule,
     ReviewsModule,
     MessagingModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
