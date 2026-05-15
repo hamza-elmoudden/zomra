@@ -238,4 +238,28 @@ export class UserInfrastructure implements UserRepository {
       );
     }
   }
+
+  async createStaffUser(data: {
+    username: string;
+    email: string;
+    passwordHash: string;
+    fullName: string;
+    role: 'admin' | 'observer';
+  }): Promise<User> {
+    try {
+      const created = await this.prisma.users.create({
+        data: {
+          username: data.username,
+          email: data.email,
+          password_hash: data.passwordHash,
+          full_name: data.fullName,
+          role: data.role,
+          is_active: true,
+        },
+      });
+      return this.mapToUser(created);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to create staff user');
+    }
+  }
 }

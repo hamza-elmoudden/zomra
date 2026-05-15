@@ -20,4 +20,11 @@ export abstract class UserRepository {
     fullName: string;
     avatarUrl?: string;
   }): Promise<{ user: User; isNew: boolean }>;
+  abstract createStaffUser(data: {
+    username: string;
+    email: string;
+    passwordHash: string;
+    fullName: string;
+    role: 'admin' | 'observer';
+  }): Promise<User>;
 }
