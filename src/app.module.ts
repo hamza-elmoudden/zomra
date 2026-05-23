@@ -12,6 +12,7 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { AdminModule } from './admin/admin.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     MessagingModule,
     AdminModule,
     NotificationsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
