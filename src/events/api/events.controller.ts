@@ -51,11 +51,6 @@ export class EventsController {
     )
   }
 
-  @Get(':id')
-  async findById(@Param('id', ParseUUIDPipe) id: string): Promise<Events> {
-    return this.queryBus.execute(new GetEventByIdImpl(id))
-  }
-
   @Get()
   async findAll(@Query() query: ListEventsQueryDto): Promise<Events[]> {
     return this.queryBus.execute(
@@ -68,6 +63,11 @@ export class EventsController {
     return this.queryBus.execute(
       new GetNearbyEventsImpl(query.lat, query.lng, query.radiusKm),
     )
+  }
+
+  @Get(':id')
+  async findById(@Param('id', ParseUUIDPipe) id: string): Promise<Events> {
+    return this.queryBus.execute(new GetEventByIdImpl(id))
   }
 
   @Patch(':id')
