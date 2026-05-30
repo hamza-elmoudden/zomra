@@ -74,7 +74,6 @@ describe('JoinEventHandler', () => {
     const result = await handler.execute(new JoinEventImpl('event-1', 'user-1'));
 
     expect(participantRepo.create).toHaveBeenCalled();
-    expect(eventRepo.update).toHaveBeenCalled();
     expect(result).toBeDefined();
   });
 
@@ -217,7 +216,7 @@ describe('AcceptParticipantHandler', () => {
   let participantRepo: jest.Mocked<EventParticipantRepository>;
 
   beforeEach(async () => {
-    eventRepo = { findById: jest.fn() } as any;
+    eventRepo = { findById: jest.fn(), update: jest.fn() } as any;
     participantRepo = {
       findByEventAndUser: jest.fn(),
       countByEventId: jest.fn(),
@@ -247,6 +246,7 @@ describe('AcceptParticipantHandler', () => {
 
     const result = await handler.execute(new AcceptParticipantImpl('event-1', 'user-2', 'host-1'));
     expect(participantRepo.updateStatus).toHaveBeenCalledWith('p1', 'accepted');
+    expect(eventRepo.update).toHaveBeenCalledWith('event-1', { current_count: 5 });
     expect(result).toBeDefined();
   });
 
