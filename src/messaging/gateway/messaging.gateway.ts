@@ -8,7 +8,9 @@ import {
   MessageBody,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { UseGuards } from "@nestjs/common";
+import { Logger } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { ConfigService } from "@nestjs/config";
 
 @WebSocketGateway({
   cors: {
@@ -22,12 +24,39 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
   @WebSocketServer()
   server: Server;
 
+  private readonly logger = new Logger(MessagingGateway.name);
+
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly config: ConfigService,
+  ) {}
+
   handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`)
+    try {
+      const token =
+        client.handshake.auth?.token ||
+        client.handshake.headers?.authorization?.replace('Bearer ', '');
+
+      if (!token) {
+        this.logger.warn(`Rejected unauthenticated socket: ${client.id}`);
+        client.disconnect(true);
+        return;
+      }
+
+      const payload = this.jwtService.verify(token, {
+        secret: this.config.getOrThrow('JWT_SECRET'),
+      });
+
+      client.data.userId = payload.sub;
+      this.logger.log(`Socket connected: ${client.id} (user: ${payload.sub})`);
+    } catch {
+      this.logger.warn(`Rejected socket with invalid token: ${client.id}`);
+      client.disconnect(true);
+    }
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`)
+    this.logger.log(`Socket disconnected: ${client.id}`);
   }
 
   @SubscribeMessage("joinConversation")
