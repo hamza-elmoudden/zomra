@@ -43,7 +43,12 @@ export class AcceptParticipantHandler implements ICommandHandler<AcceptParticipa
     }
 
     try {
-      return await this.participantRepo.updateStatus(participant.id, 'accepted')
+      const result = await this.participantRepo.updateStatus(participant.id, 'accepted')
+
+      const acceptedCount = await this.participantRepo.countByEventId(command.eventId)
+      await this.eventRepo.update(command.eventId, { current_count: acceptedCount } as any)
+
+      return result
     } catch (error) {
       throw new InternalServerErrorException('Error accepting participant')
     }
