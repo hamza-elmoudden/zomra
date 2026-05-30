@@ -51,11 +51,7 @@ export class JoinEventHandler implements ICommandHandler<JoinEventImpl> {
     )
 
     try {
-      const result = await this.participantRepo.create(participant)
-
-      await this.eventRepo.update(command.eventId, { current_count: currentAccepted + 1 } as any)
-
-      return result
+      return await this.participantRepo.create(participant)
     } catch (error) {
       throw new InternalServerErrorException('Error joining event')
     }
