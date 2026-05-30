@@ -23,7 +23,15 @@ export class EventParticipantInfrastructure implements EventParticipantRepositor
     }
 
     async create(data: EventParticipant): Promise<EventParticipant> {
-        const participant = await this.prisma.event_participants.create({ data })
+        const participant = await this.prisma.event_participants.create({
+            data: {
+                id: data.id,
+                event_id: data.event_id,
+                user_id: data.user_id,
+                status: data.status,
+                joined_at: data.joined_at,
+            },
+        })
         return this.mapToParticipant(participant)
     }
 
