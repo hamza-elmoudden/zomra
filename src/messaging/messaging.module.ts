@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { EventsModule } from 'src/events/events.module';
 import { ID_CONVERSATION_REPOSITORY } from './domain/repositories/conversation.repository';
@@ -18,7 +20,7 @@ import { MessagingController } from './api/messaging.controller';
 import { MessagingGateway } from './gateway/messaging.gateway';
 
 @Module({
-  imports: [PrismaModule, CqrsModule, EventsModule],
+  imports: [PrismaModule, CqrsModule, EventsModule, JwtModule.register({}), ConfigModule],
   controllers: [MessagingController],
   providers: [
     {
