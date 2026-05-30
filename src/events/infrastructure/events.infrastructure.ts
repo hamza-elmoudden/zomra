@@ -55,7 +55,24 @@ export class EventsInfrastructure implements EventsRepositories {
 
     async create(data: Events): Promise<Events> {
         const events = await this.prisma.events.create({
-            data
+            data: {
+                id: data.id,
+                host_id: data.host_id,
+                title: data.title,
+                description: data.description,
+                category: data.category,
+                address: data.address,
+                city: data.city,
+                starts_at: data.starts_at,
+                duration_minutes: data.duration_minutes,
+                max_participants: data.max_participants,
+                current_count: data.current_count,
+                status: data.status,
+                cover_image_url: data.cover_image_url,
+                is_public: data.is_public,
+                lat: data.lat,
+                lng: data.lng,
+            },
         })
 
         return this.mapToEvents(events)
