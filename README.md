@@ -1,98 +1,282 @@
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+  <img src="https://nestjs.com/img/logo-small.svg" width="80" alt="Nest Logo" />
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+<h1 align="center">Zomra — Backend API</h1>
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+<p align="center">
+  A smart social platform that connects people nearby with shared interests for real-life meetups.
 </p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+<p align="center">
+  <img src="https://img.shields.io/badge/NestJS-v11-E0234E?logo=nestjs" />
+  <img src="https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Prisma-2D3748?logo=prisma" />
+  <img src="https://img.shields.io/badge/Auth-JWT%20%2B%20Google%20OAuth-orange" />
+  <img src="https://img.shields.io/badge/Pattern-CQRS-blueviolet" />
+  <img src="https://img.shields.io/badge/WebSockets-Socket.io-black?logo=socket.io" />
+</p>
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## What is Zomra?
+
+Zomra transforms virtual interactions into meaningful real-life meetups. Users post activity invitations — coffee, sports, hiking, parties — and the platform matches them with nearby people who share the same interests.
+
+Key principles:
+- **Not a dating app** — focused on activities and shared interests
+- **Not a business network** — focused on real-time, real-world meetups
+- **Trust-first** — reputation scores, reviews, and a reporting system keep the community safe
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | NestJS v11 |
+| Language | TypeScript 5.7 |
+| Database | PostgreSQL |
+| ORM | Prisma 6 |
+| Auth | JWT (access + refresh) + Google OAuth 2.0 |
+| Architecture | CQRS (CommandBus / QueryBus) |
+| Real-time | Socket.io via `@nestjs/websockets` |
+| Validation | class-validator + class-transformer |
+| Testing | Jest + Supertest |
+
+---
+
+## Project Setup
+
+### Prerequisites
+
+- Node.js ≥ 20
+- PostgreSQL running locally or via Docker
+- A Google OAuth app (Client ID + Secret) for social login
+
+### 1. Install dependencies
 
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
+### 2. Configure environment variables
+
+Create a `.env` file at the project root:
+
+```env
+# Database
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/zomra"
+
+# JWT
+JWT_SECRET=your_jwt_secret_here
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_SECRET=your_refresh_secret_here
+JWT_REFRESH_EXPIRES_IN=7d
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
+
+# App
+PORT=3000
+FRONTEND_URL=http://localhost:3001
+```
+
+### 3. Run database migrations
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npx prisma migrate dev
+npx prisma generate
 ```
 
-## Run tests
+### 4. Start the server
 
 ```bash
-# unit tests
-$ npm run test
+# Development (watch mode)
+npm run start:dev
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# Production build
+npm run build
+npm run start:prod
 ```
 
-## Deployment
+The API will be available at `http://localhost:3000`.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+---
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## API Modules
+
+| Module | Base Path | Description |
+|--------|-----------|-------------|
+| Auth | `/auth` | Google OAuth, JWT login, token refresh, logout |
+| Users | `/users` | Profile management, complete profile |
+| Interests | `/interests` | Global interest list (admin managed) |
+| User Interests | `/user-interests` | Add/remove interests from user profile |
+| Events | `/events` | Create, list, search, join, leave events |
+| Reviews | `/reviews` | Rate and review other participants |
+| Messaging | `/messaging` | Private conversations and group event chat |
+| Notifications | `/notifications` | In-app notification feed |
+| Reports | `/reports` | Report users or events for misconduct |
+| Admin | `/admin` | Staff management, user/event moderation |
+
+### Authentication Flow
+
+```
+1. GET  /auth/google                  → redirect to Google consent screen
+2. GET  /auth/google/callback         → receive tokens (access + refresh in cookies)
+3. POST /auth/refresh                 → rotate tokens using refresh cookie
+4. POST /auth/logout                  → clear refresh token
+```
+
+All protected endpoints require the `Authorization: Bearer <access_token>` header,
+or the `access_token` cookie set after login.
+
+### Events — Key Endpoints
+
+```
+POST   /events                              → create event (auth required)
+GET    /events                              → list events (public, supports ?city=&category=&status=&page=&limit=)
+GET    /events/nearby                       → nearby events (?lat=&lng=&radiusKm=)
+GET    /events/:id                          → event detail (public)
+PATCH  /events/:id                          → update event (host only)
+DELETE /events/:id                          → delete event (host only)
+
+POST   /events/:id/join                     → request to join (auth required)
+POST   /events/:id/leave                    → leave event (auth required)
+GET    /events/:id/participants             → list participants (auth required)
+PATCH  /events/:id/participants/:userId     → accept or reject a participant (host only, body: { action: "accept" | "reject" })
+```
+
+### WebSocket — Real-time Messaging
+
+Connect to `ws://localhost:3000/messaging` with a valid JWT:
+
+```js
+// Client must send token on handshake
+const socket = io('http://localhost:3000/messaging', {
+  auth: { token: '<access_token>' }
+})
+
+socket.emit('joinConversation', { conversationId: '...' })
+socket.emit('joinEventRoom',    { eventId: '...' })
+
+socket.on('newMessage',      (msg) => { ... })
+socket.on('newGroupMessage', (msg) => { ... })
+socket.on('messageDeleted',  ({ messageId }) => { ... })
+```
+
+Connections without a valid token are immediately disconnected.
+
+---
+
+## Database Schema
+
+12 tables covering all core features:
+
+```
+users                 → profiles, reputation, location, role
+events                → activity invitations with geolocation
+event_participants    → join requests with status (pending / accepted / rejected / left)
+interests             → global interest catalog
+user_interests        → many-to-many: users ↔ interests
+conversations         → private 1-on-1 chats (optionally linked to an event)
+messages              → messages inside a conversation
+group_event_messages  → group chat inside an event room
+media                 → photos and reels uploaded to events
+reviews               → post-event ratings between accepted participants
+notifications         → in-app notification feed
+reports               → user/event misconduct reports
+```
+
+Run `npx prisma studio` to browse data visually.
+
+---
+
+## Architecture
+
+The project follows **CQRS** — every use case is either a Command (write) or a Query (read).
+
+```
+src/
+├── auth/                    # JWT strategies, guards, decorators
+├── users/
+│   ├── api/                 # Controller
+│   ├── application/
+│   │   ├── commands/        # CompleteUserCommand + Handler
+│   │   └── queries/         # FindUserByIdQuery + Handler
+│   ├── domain/              # User entity + UserRepository interface
+│   └── infrastructure/      # Prisma implementation of UserRepository
+├── events/                  # Same structure — 7 commands, 4 queries
+├── messaging/               # HTTP controllers + Socket.io gateway
+├── reviews/
+├── notifications/
+├── reports/
+├── interests/
+├── userinterests/
+├── admin/
+└── prisma/                  # PrismaService + PrismaModule
+```
+
+All modules use repository abstraction — infrastructure is injected via token (`@Inject(ID_USER_REPOSITORY)`), keeping domain logic free of Prisma.
+
+---
+
+## Running Tests
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Unit tests
+npm run test
+
+# Watch mode
+npm run test:watch
+
+# Coverage report
+npm run test:cov
+
+# E2E tests
+npm run test:e2e
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Resources
+## Code Quality
 
-Check out a few resources that may come in handy when working with NestJS:
+```bash
+# Lint
+npm run lint
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# Format
+npm run format
 
-## Support
+# Type check (no emit)
+npx tsc --noEmit
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+The project enforces no `console.log` in production code and no `any` types in new code.
 
-## Stay in touch
+---
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Roles & Permissions
+
+| Role | Permissions |
+|------|-------------|
+| `user` | Create events, join events, send messages, leave reviews, report |
+| `admin` | Everything above + manage users, suspend events, manage interests, delete reviews |
+| `observer` | Read-only access to admin panel |
+
+---
+
+## Environment Notes
+
+- Access tokens expire in **15 minutes**. The frontend should use the refresh endpoint to rotate silently.
+- Refresh tokens are stored hashed (SHA-256) in the database — plain tokens are never persisted.
+- CORS is restricted to `FRONTEND_URL`. Set this in `.env` for production.
+- The WebSocket namespace is `/messaging`. Clients must pass the JWT in `handshake.auth.token`.
+
+---
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+MIT
