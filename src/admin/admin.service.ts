@@ -4,6 +4,7 @@ import { ID_USER_REPOSITORY, UserRepository } from 'src/users/domain/repositorie
 import { EVENTS_KAY, EventsRepositories } from 'src/events/domain/repositories/events.repositories';
 import { event_status } from 'generated/prisma/enums';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { User } from 'src/users/domain/entities/user.entity';
 
 @Injectable()
 export class AdminService {
@@ -44,7 +45,7 @@ export class AdminService {
       throw new NotFoundException('User not found');
     }
 
-    const updated = new (await import('src/users/domain/entities/user.entity')).User(
+    const updated = new User(
       user.id,
       user.username,
       user.email,
