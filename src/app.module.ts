@@ -13,6 +13,7 @@ import { MessagingModule } from './messaging/messaging.module';
 import { AdminModule } from './admin/admin.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ReportsModule } from './reports/reports.module';
+import { MediaModule } from './media/media.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ReportsModule } from './reports/reports.module';
     AdminModule,
     NotificationsModule,
     ReportsModule,
+    MediaModule
   ],
   controllers: [AppController],
   providers: [AppService],
