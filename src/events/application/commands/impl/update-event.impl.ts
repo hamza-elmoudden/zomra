@@ -11,7 +11,6 @@ export class UpdateEventImpl {
     public readonly max_participants?: number,
     public readonly address?: string,
     public readonly city?: string,
-    public readonly cover_image_url?: string,
     public readonly lat?: number,
     public readonly lng?: number,
     public readonly status?: event_status,

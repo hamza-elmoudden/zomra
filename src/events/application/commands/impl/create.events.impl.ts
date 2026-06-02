@@ -15,8 +15,6 @@ export class CreateEventsImpl {
         public readonly address?: string,
         public readonly city?: string,
 
-        public readonly cover_image_url?: string,
-
         public readonly lat?: number,
         public readonly lng?: number
     ) { }

@@ -31,7 +31,6 @@ export class CreateEventsHandler implements ICommandHandler<CreateEventsImpl> {
             command.description,
             command.address,
             command.city,
-            command.cover_image_url,
             undefined, undefined,
             command.lat,
             command.lng)
