@@ -19,8 +19,6 @@ export class Events {
     public readonly address?: string,
     public readonly city?: string,
 
-    public readonly cover_image_url?: string,
-
     public readonly created_at?: Date,
     public readonly updated_at?: Date,
 

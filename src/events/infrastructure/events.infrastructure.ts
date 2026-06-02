@@ -43,8 +43,6 @@ export class EventsInfrastructure implements EventsRepositories {
             event.address ?? undefined,
             event.city ?? undefined,
 
-            event.cover_image_url ?? undefined,
-
             event.created_at ?? undefined,
             event.updated_at ?? undefined,
 
@@ -68,7 +66,6 @@ export class EventsInfrastructure implements EventsRepositories {
                 max_participants: data.max_participants,
                 current_count: data.current_count,
                 status: data.status,
-                cover_image_url: data.cover_image_url,
                 is_public: data.is_public,
                 lat: data.lat,
                 lng: data.lng,
