@@ -1,7 +1,16 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 @Injectable()
 export class StorageService {
@@ -12,10 +21,13 @@ export class StorageService {
   private initialized = false;
 
   constructor(private configService: ConfigService) {
-    this.region = this.configService.get<string>('AWS_REGION') || '';
-    this.bucketName = this.configService.get<string>('AWS_S3_BUCKET_NAME') || '';
-    const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID') || '';
-    const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY') || '';
+    this.region = this.configService.get<string>("AWS_REGION") || "";
+    this.bucketName =
+      this.configService.get<string>("AWS_S3_BUCKET_NAME") || "";
+    const accessKeyId =
+      this.configService.get<string>("AWS_ACCESS_KEY_ID") || "";
+    const secretAccessKey =
+      this.configService.get<string>("AWS_SECRET_ACCESS_KEY") || "";
 
     if (this.region && accessKeyId && secretAccessKey && this.bucketName) {
       this.s3Client = new S3Client({
@@ -24,13 +36,17 @@ export class StorageService {
       });
       this.initialized = true;
     } else {
-      this.logger.warn('AWS S3 not configured - file storage will be unavailable');
+      this.logger.warn(
+        "AWS S3 not configured - file storage will be unavailable",
+      );
     }
   }
 
   private ensureInitialized() {
     if (!this.initialized || !this.s3Client) {
-      throw new InternalServerErrorException('Storage service is not configured');
+      throw new InternalServerErrorException(
+        "Storage service is not configured",
+      );
     }
   }
 
@@ -51,7 +67,9 @@ export class StorageService {
       );
       return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
     } catch (error) {
-      throw new InternalServerErrorException('Failed to upload file to storage');
+      throw new InternalServerErrorException(
+        "Failed to upload file to storage",
+      );
     }
   }
 
@@ -65,7 +83,9 @@ export class StorageService {
         }),
       );
     } catch (error) {
-      throw new InternalServerErrorException('Failed to delete file from storage');
+      throw new InternalServerErrorException(
+        "Failed to delete file from storage",
+      );
     }
   }
 
@@ -78,11 +98,14 @@ export class StorageService {
       });
       return getSignedUrl(this.s3Client!, command, { expiresIn });
     } catch (error) {
-      throw new InternalServerErrorException('Failed to generate signed URL');
+      throw new InternalServerErrorException("Failed to generate signed URL");
     }
   }
 
   extractKeyFromUrl(url: string): string {
-    return url.replace(`https://${this.bucketName}.s3.${this.region}.amazonaws.com/`, '');
+    return url.replace(
+      `https://${this.bucketName}.s3.${this.region}.amazonaws.com/`,
+      "",
+    );
   }
 }

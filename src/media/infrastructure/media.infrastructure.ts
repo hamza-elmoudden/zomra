@@ -1,7 +1,7 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { Media } from '../domain/entities/media.entity';
-import { MediaRepository } from '../domain/repositories/media.repository';
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import { PrismaService } from "src/prisma/prisma.service";
+import { Media } from "../domain/entities/media.entity";
+import { MediaRepository } from "../domain/repositories/media.repository";
 
 @Injectable()
 export class MediaInfrastructure implements MediaRepository {
@@ -37,7 +37,7 @@ export class MediaInfrastructure implements MediaRepository {
       });
       return this.mapToMedia(result);
     } catch (error) {
-      throw new InternalServerErrorException('Failed to create media');
+      throw new InternalServerErrorException("Failed to create media");
     }
   }
 
@@ -45,11 +45,11 @@ export class MediaInfrastructure implements MediaRepository {
     try {
       const data = await this.prisma.media.findMany({
         where: { event_id: eventId },
-        orderBy: { created_at: 'desc' },
+        orderBy: { created_at: "desc" },
       });
       return data.map((m) => this.mapToMedia(m));
     } catch (error) {
-      throw new InternalServerErrorException('Failed to find media');
+      throw new InternalServerErrorException("Failed to find media");
     }
   }
 
@@ -58,7 +58,7 @@ export class MediaInfrastructure implements MediaRepository {
       const data = await this.prisma.media.findUnique({ where: { id } });
       return data ? this.mapToMedia(data) : null;
     } catch (error) {
-      throw new InternalServerErrorException('Failed to find media');
+      throw new InternalServerErrorException("Failed to find media");
     }
   }
 
@@ -66,7 +66,7 @@ export class MediaInfrastructure implements MediaRepository {
     try {
       await this.prisma.media.delete({ where: { id } });
     } catch (error) {
-      throw new InternalServerErrorException('Failed to delete media');
+      throw new InternalServerErrorException("Failed to delete media");
     }
   }
 }
