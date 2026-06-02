@@ -48,7 +48,6 @@ describe('EventsController', () => {
         description: 'A test event',
         address: '123 Street',
         city: 'Casablanca',
-        coverImageUrl: 'https://example.com/img.jpg',
         lat: 33.5,
         lng: -7.5,
       };
