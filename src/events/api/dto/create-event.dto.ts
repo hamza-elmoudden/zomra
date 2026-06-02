@@ -40,10 +40,6 @@ export class CreateEventDto {
   city?: string;
 
   @IsOptional()
-  @IsString()
-  coverImageUrl?: string;
-
-  @IsOptional()
   @IsNumber()
   lat?: number;
 
