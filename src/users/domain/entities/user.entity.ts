@@ -19,7 +19,7 @@ export class User {
     public reputation_score: number = 5.0,
     public total_reviews: number = 0,
     public is_verified: boolean = false,
-    public is_active: boolean = true,
+    public status: string = 'active',
     public created_at: Date = new Date(),
     public role: string = 'user',
     public refresh_token?: string,
