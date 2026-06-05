@@ -14,6 +14,7 @@ import { GetEventByIdHandler } from './application/queries/handler/get-event-by-
 import { ListEventsHandler } from './application/queries/handler/list-events.handler';
 import { GetNearbyEventsHandler } from './application/queries/handler/get-nearby-events.handler';
 import { GetEventParticipantsHandler } from './application/queries/handler/get-event-participants.handler';
+import { GetMyEventsHandler } from './application/queries/handler/get-my-events.handler';
 import { EventsController } from './api/events.controller';
 import { UsersModule } from 'src/users/users.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
@@ -40,6 +41,7 @@ import { CqrsModule } from '@nestjs/cqrs';
         ListEventsHandler,
         GetNearbyEventsHandler,
         GetEventParticipantsHandler,
+        GetMyEventsHandler,
     ],
     controllers: [EventsController],
     exports: [EVENTS_KAY, EVENT_PARTICIPANT_KEY],
