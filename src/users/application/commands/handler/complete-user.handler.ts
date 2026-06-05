@@ -18,7 +18,7 @@ export class CompleteUserHandler implements ICommandHandler<CompleteUserImpl> {
       throw new BadRequestException('Account User Not Found');
     }
 
-    if (existing.is_active === true) {
+    if (existing.status === 'active') {
       throw new BadRequestException('User profile is already complete');
     }
 
@@ -39,11 +39,13 @@ export class CompleteUserHandler implements ICommandHandler<CompleteUserImpl> {
       existing.reputation_score,
       existing.total_reviews,
       existing.is_verified,
-      true,               // is_active = true after completion
+      existing.status,
       existing.created_at,
       existing.role,
       existing.refresh_token,
     );
+
+    data.status = 'active';
 
     try {
       return await this.repo.complete(data);
