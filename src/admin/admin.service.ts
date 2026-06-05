@@ -62,7 +62,7 @@ export class AdminService {
       user.reputation_score,
       user.total_reviews,
       user.is_verified,
-      !suspend,
+      suspend ? 'blocked' : 'active',
       user.created_at,
       user.role,
       user.refresh_token,
@@ -104,7 +104,7 @@ export class AdminService {
         email: true,
         full_name: true,
         role: true,
-        is_active: true,
+        status: true,
         created_at: true,
       },
     });
