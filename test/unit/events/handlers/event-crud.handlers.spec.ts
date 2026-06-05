@@ -6,6 +6,7 @@ import { GetEventByIdHandler } from 'src/events/application/queries/handler/get-
 import { ListEventsHandler } from 'src/events/application/queries/handler/list-events.handler';
 import { GetNearbyEventsHandler } from 'src/events/application/queries/handler/get-nearby-events.handler';
 import { GetEventParticipantsHandler } from 'src/events/application/queries/handler/get-event-participants.handler';
+import { GetMyEventsHandler } from 'src/events/application/queries/handler/get-my-events.handler';
 import { EVENTS_KAY } from 'src/events/domain/repositories/events.repositories';
 import { EVENT_PARTICIPANT_KEY } from 'src/events/domain/repositories/event-participant.repository';
 import { EventsRepositories } from 'src/events/domain/repositories/events.repositories';
@@ -17,6 +18,7 @@ import { GetEventByIdImpl } from 'src/events/application/queries/impl/get-event-
 import { ListEventsImpl } from 'src/events/application/queries/impl/list-events.impl';
 import { GetNearbyEventsImpl } from 'src/events/application/queries/impl/get-nearby-events.impl';
 import { GetEventParticipantsImpl } from 'src/events/application/queries/impl/get-event-participants.impl';
+import { GetMyEventsImpl } from 'src/events/application/queries/impl/get-my-events.impl';
 
 function createMockEvent(id: string, hostId: string): Events {
   return new Events(
@@ -240,5 +242,39 @@ describe('GetEventParticipantsHandler', () => {
 
     await handler.execute(new GetEventParticipantsImpl('event-1'));
     expect(repo.findByEventId).toHaveBeenCalledWith('event-1');
+  });
+});
+
+describe('GetMyEventsHandler', () => {
+  let handler: GetMyEventsHandler;
+  let repo: jest.Mocked<EventsRepositories>;
+
+  beforeEach(async () => {
+    repo = { findByUser: jest.fn() } as any;
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        GetMyEventsHandler,
+        { provide: EVENTS_KAY, useValue: repo },
+      ],
+    }).compile();
+
+    handler = module.get<GetMyEventsHandler>(GetMyEventsHandler);
+  });
+
+  it('should return events for the given user', async () => {
+    const events = [createMockEvent('e1', 'user-1'), createMockEvent('e2', 'user-1')];
+    repo.findByUser.mockResolvedValue(events);
+
+    const result = await handler.execute(new GetMyEventsImpl('user-1'));
+    expect(repo.findByUser).toHaveBeenCalledWith('user-1');
+    expect(result).toEqual(events);
+  });
+
+  it('should return empty array when user has no events', async () => {
+    repo.findByUser.mockResolvedValue([]);
+
+    const result = await handler.execute(new GetMyEventsImpl('user-2'));
+    expect(result).toEqual([]);
   });
 });
