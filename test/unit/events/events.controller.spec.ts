@@ -13,6 +13,7 @@ import { GetEventByIdImpl } from 'src/events/application/queries/impl/get-event-
 import { ListEventsImpl } from 'src/events/application/queries/impl/list-events.impl';
 import { GetNearbyEventsImpl } from 'src/events/application/queries/impl/get-nearby-events.impl';
 import { GetEventParticipantsImpl } from 'src/events/application/queries/impl/get-event-participants.impl';
+import { GetMyEventsImpl } from 'src/events/application/queries/impl/get-my-events.impl';
 import { User } from 'src/users/domain/entities/user.entity';
 
 describe('EventsController', () => {
@@ -207,6 +208,17 @@ describe('EventsController', () => {
         new RejectParticipantImpl('event-1', 'user-2', 'user-1'),
       );
       expect(result).toEqual({ id: 'p1' });
+    });
+  });
+
+  describe('myEvents', () => {
+    it('should execute GetMyEventsImpl', async () => {
+      const expected = [{ id: 'e1' }, { id: 'e2' }];
+      queryBus.execute.mockResolvedValue(expected);
+
+      const result = await controller.myEvents(mockUser);
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetMyEventsImpl('user-1'));
+      expect(result).toEqual(expected);
     });
   });
 });
