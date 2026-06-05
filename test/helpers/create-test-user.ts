@@ -8,7 +8,7 @@ export interface TestUser {
   email: string;
   full_name: string;
   role: string;
-  is_active: boolean;
+  status: string;
   password_hash: string | null;
 }
 
@@ -24,7 +24,7 @@ export async function createTestUser(
     full_name: 'Test User',
     password_hash: await bcrypt.hash('123456789', 10),
     role: 'user',
-    is_active: true,
+    status: 'active',
     ...overrides,
   };
 
