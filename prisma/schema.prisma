@@ -211,7 +211,7 @@ model users {
   reputation_score                             Float                  @default(5.0)
   total_reviews                                Int                    @default(0)
   is_verified                                  Boolean                @default(false)
-  is_active                                    Boolean                @default(false)
+  status                                       user_status            @default(active)
   created_at                                   DateTime               @default(now()) @db.Timestamptz(6)
   last_active_at                               DateTime               @default(now()) @db.Timestamptz(6)
   role                                         user_role?
@@ -289,4 +289,10 @@ enum user_role {
   user
   admin
   observer
+}
+
+enum user_status {
+  active
+  blocked
+  banned
 }
