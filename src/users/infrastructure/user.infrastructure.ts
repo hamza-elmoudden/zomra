@@ -26,7 +26,7 @@ export class UserInfrastructure implements UserRepository {
       data.reputation_score ?? 5.0,
       data.total_reviews ?? 0,
       data.is_verified ?? false,
-      data.is_active ?? true,
+      data.status ?? 'active',
       data.created_at ?? new Date(),
       data.role ?? 'user',
       data.refresh_token ?? undefined,
@@ -44,7 +44,7 @@ export class UserInfrastructure implements UserRepository {
           google_id: user.google_id,
           full_name: user.full_name,
           avatar_url: user.avatar_url,
-          is_active: false,
+          status: 'blocked',
         },
       });
       return data.id;
@@ -69,7 +69,7 @@ export class UserInfrastructure implements UserRepository {
           city: user.city,
           reputation_score: user.reputation_score,
           is_verified: user.is_verified,
-          is_active: user.is_active,
+          status: user.status,
         },
       });
       return !!data;
@@ -191,6 +191,49 @@ export class UserInfrastructure implements UserRepository {
     }
   }
 
+  // ─── Update partial ──────────────────────────────────────────
+  async updatePartial(userId: string, data: {
+    phone?: string;
+    full_name?: string;
+    bio?: string;
+    avatar_url?: string;
+    lat?: number;
+    lng?: number;
+    country?: string;
+    city?: string;
+  }): Promise<boolean> {
+    try {
+      const result = await this.prisma.users.update({
+        where: { id: userId },
+        data: {
+          ...(data.phone !== undefined && { phone: data.phone }),
+          ...(data.full_name !== undefined && { full_name: data.full_name }),
+          ...(data.bio !== undefined && { bio: data.bio }),
+          ...(data.avatar_url !== undefined && { avatar_url: data.avatar_url }),
+          ...(data.lat !== undefined && { lat: data.lat }),
+          ...(data.lng !== undefined && { lng: data.lng }),
+          ...(data.country !== undefined && { country: data.country }),
+          ...(data.city !== undefined && { city: data.city }),
+        },
+      });
+      return !!result;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to update user profile');
+    }
+  }
+
+  // ─── Update status ────────────────────────────────────────────
+  async updateStatus(userId: string, status: string): Promise<void> {
+    try {
+      await this.prisma.users.update({
+        where: { id: userId },
+        data: { status: status as any },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to update user status');
+    }
+  }
+
   // ─── Find or create Google user ──────────────────────────────
   async findOrCreateGoogleUser(params: {
     googleId: string;
@@ -228,7 +271,7 @@ export class UserInfrastructure implements UserRepository {
           full_name: params.fullName,
           avatar_url: params.avatarUrl,
           username,
-          is_active: false,
+          status: 'blocked',
         },
       });
       return { user: this.mapToUser(created), isNew: true };
@@ -254,7 +297,7 @@ export class UserInfrastructure implements UserRepository {
           password_hash: data.passwordHash,
           full_name: data.fullName,
           role: data.role,
-          is_active: true,
+          status: 'active',
         },
       });
       return this.mapToUser(created);

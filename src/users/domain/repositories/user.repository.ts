@@ -14,6 +14,17 @@ export abstract class UserRepository {
   abstract saveRefreshToken(userId: string, hashedToken: string): Promise<void>;
   abstract clearRefreshToken(userId: string): Promise<void>;
   abstract updateLastLogin(userId: string): Promise<void>;
+  abstract updateStatus(userId: string, status: string): Promise<void>;
+  abstract updatePartial(userId: string, data: {
+    phone?: string;
+    full_name?: string;
+    bio?: string;
+    avatar_url?: string;
+    lat?: number;
+    lng?: number;
+    country?: string;
+    city?: string;
+  }): Promise<boolean>;
   abstract findOrCreateGoogleUser(params: {
     googleId: string;
     email: string;
