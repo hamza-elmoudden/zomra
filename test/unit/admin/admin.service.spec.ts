@@ -62,7 +62,7 @@ describe('AdminService', () => {
       expect(result).toBeDefined();
       expect(result.email).toBe('staff@test.com');
       expect(result.role).toBe('admin');
-      expect(result.is_active).toBe(true);
+      expect(result.status).toBe('active');
       expect(bcrypt.hash).toHaveBeenCalledWith('123456789', 12);
     });
 
@@ -90,7 +90,7 @@ describe('AdminService', () => {
       const result = await service.suspendUser(user.id, true);
       expect(result).toBe(true);
       const updated = await userRepo.findById(user.id);
-      expect(updated?.is_active).toBe(false);
+      expect(updated?.status).toBe('blocked');
     });
 
     it('should unsuspend a user', async () => {
@@ -101,7 +101,7 @@ describe('AdminService', () => {
       const result = await service.suspendUser(user.id, false);
       expect(result).toBe(true);
       const updated = await userRepo.findById(user.id);
-      expect(updated?.is_active).toBe(true);
+      expect(updated?.status).toBe('active');
     });
 
     it('should throw NotFoundException if user does not exist', async () => {
@@ -160,7 +160,7 @@ describe('AdminService', () => {
   describe('listStaffUsers', () => {
     it('should return staff users', async () => {
       const staffList = [
-        { id: '1', username: 'admin1', email: 'admin@test.com', full_name: 'Admin', role: 'admin', is_active: true, created_at: new Date() },
+        { id: '1', username: 'admin1', email: 'admin@test.com', full_name: 'Admin', role: 'admin', status: 'active', created_at: new Date() },
       ];
       prismaMock.users.findMany.mockResolvedValue(staffList);
 
