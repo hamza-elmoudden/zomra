@@ -90,7 +90,7 @@ export class CreateReviewHandler implements ICommandHandler<CreateReviewImpl> {
         avgRating ?? reviewedUser.reputation_score,
         totalReviews,
         reviewedUser.is_verified,
-        reviewedUser.is_active,
+        reviewedUser.status,
         reviewedUser.created_at,
         reviewedUser.role,
         reviewedUser.refresh_token,
