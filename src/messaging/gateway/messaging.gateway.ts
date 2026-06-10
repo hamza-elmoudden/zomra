@@ -48,6 +48,7 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
       });
 
       client.data.userId = payload.sub;
+      client.join(`user:${payload.sub}`);
       this.logger.log(`Socket connected: ${client.id} (user: ${payload.sub})`);
     } catch {
       this.logger.warn(`Rejected socket with invalid token: ${client.id}`);
@@ -101,5 +102,13 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
 
   sendMessageDeleted(conversationId: string, messageId: string) {
     this.server.to(`conversation:${conversationId}`).emit("messageDeleted", { messageId })
+  }
+
+  sendEventJoinRequest(eventId: string, hostId: string, data: { userId: string; userName: string; eventTitle: string }) {
+    this.server.to(`user:${hostId}`).emit("eventJoinRequest", { eventId, ...data })
+  }
+
+  sendParticipantStatusUpdate(userId: string, data: { eventId: string; eventTitle: string; status: string }) {
+    this.server.to(`user:${userId}`).emit("participantStatusUpdate", data)
   }
 }
