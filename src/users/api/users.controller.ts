@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Patch, Body, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, Patch, Post, Body, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import { findUserByIdImpl } from "../application/queries/impl/find-user-byId.impl";
 import { FindUserByEmailImpl } from "../application/queries/impl/find-user-by-email.impl";
@@ -10,6 +11,7 @@ import { User } from "../domain/entities/user.entity";
 import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
 import { AdminGuard } from "src/admin/guards/admin.guard";
 import { CurrentUser } from "src/auth/decorators/decorators";
+import { StorageService } from "src/media/infrastructure/storage.service";
 
 
 @Controller('users')
@@ -17,6 +19,7 @@ export class UsersController {
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
+        private readonly storageService: StorageService,
     ) {}
 
     @Get('me')
@@ -44,6 +47,32 @@ export class UsersController {
                 dto.city,
             ),
         );
+    }
+
+    @Post('me/avatar')
+    @UseGuards(JwtAuthGuard)
+    @UseInterceptors(FileInterceptor('file'))
+    async uploadAvatar(
+        @CurrentUser() user: User,
+        @UploadedFile() file: Express.Multer.File,
+    ): Promise<{ avatar_url: string }> {
+        if (!file) {
+            throw new BadRequestException('No file uploaded')
+        }
+
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+            throw new BadRequestException('Only JPEG, PNG, GIF, and WebP images are allowed')
+        }
+
+        const key = `avatars/${user.id}/${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`
+        const url = await this.storageService.uploadFile(file.buffer, key, file.mimetype)
+
+        await this.commandBus.execute(
+            new UpdateUserProfileImpl(user.id, undefined, undefined, undefined, url),
+        )
+
+        return { avatar_url: url }
     }
 
     @Get('email/:email')
