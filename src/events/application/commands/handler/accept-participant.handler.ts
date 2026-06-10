@@ -1,9 +1,10 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
 import { AcceptParticipantImpl } from "../impl/accept-participant.impl";
-import { Inject, NotFoundException, ForbiddenException, BadRequestException, InternalServerErrorException } from "@nestjs/common";
+import { Inject, NotFoundException, ForbiddenException, BadRequestException, InternalServerErrorException, forwardRef } from "@nestjs/common";
 import { EVENTS_KAY, EventsRepositories } from "src/events/domain/repositories/events.repositories";
 import { EVENT_PARTICIPANT_KEY, EventParticipantRepository } from "src/events/domain/repositories/event-participant.repository";
 import { EventParticipant } from "src/events/domain/entities/event-participant.entity";
+import { MessagingGateway } from "src/messaging/gateway/messaging.gateway";
 
 @CommandHandler(AcceptParticipantImpl)
 export class AcceptParticipantHandler implements ICommandHandler<AcceptParticipantImpl> {
@@ -13,6 +14,8 @@ export class AcceptParticipantHandler implements ICommandHandler<AcceptParticipa
     private readonly eventRepo: EventsRepositories,
     @Inject(EVENT_PARTICIPANT_KEY)
     private readonly participantRepo: EventParticipantRepository,
+    @Inject(forwardRef(() => MessagingGateway))
+    private readonly messagingGateway: MessagingGateway,
   ) {}
 
   async execute(command: AcceptParticipantImpl): Promise<EventParticipant> {
@@ -47,6 +50,12 @@ export class AcceptParticipantHandler implements ICommandHandler<AcceptParticipa
 
       const acceptedCount = await this.participantRepo.countByEventId(command.eventId)
       await this.eventRepo.update(command.eventId, { current_count: acceptedCount } as any)
+
+      this.messagingGateway.sendParticipantStatusUpdate(command.userId, {
+        eventId: command.eventId,
+        eventTitle: event.title,
+        status: 'accepted',
+      })
 
       return result
     } catch (error) {
