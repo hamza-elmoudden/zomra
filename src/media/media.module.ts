@@ -35,6 +35,6 @@ import { MediaController } from "./api/media.controller";
     DeleteMediaHandler,
     GetEventMediaHandler,
   ],
-  exports: [ID_MEDIA_REPOSITORY],
+  exports: [ID_MEDIA_REPOSITORY, StorageService],
 })
 export class MediaModule {}
