@@ -6,21 +6,25 @@ import { FindUserByEmailImpl } from 'src/users/application/queries/impl/find-use
 import { UpdateUserStatusImpl } from 'src/users/application/commands/impl/update-user-status.impl';
 import { UpdateUserProfileImpl } from 'src/users/application/commands/impl/update-user-profile.impl';
 import { User } from 'src/users/domain/entities/user.entity';
+import { StorageService } from 'src/media/infrastructure/storage.service';
 
 describe('UsersController', () => {
   let controller: UsersController;
   let commandBus: jest.Mocked<CommandBus>;
   let queryBus: jest.Mocked<QueryBus>;
+  let storageService: jest.Mocked<StorageService>;
 
   beforeEach(async () => {
     commandBus = { execute: jest.fn() } as any;
     queryBus = { execute: jest.fn() } as any;
+    storageService = { uploadFile: jest.fn(), deleteFile: jest.fn(), getSignedUrl: jest.fn(), extractKeyFromUrl: jest.fn() } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
       providers: [
         { provide: CommandBus, useValue: commandBus },
         { provide: QueryBus, useValue: queryBus },
+        { provide: StorageService, useValue: storageService },
       ],
     }).compile();
 
