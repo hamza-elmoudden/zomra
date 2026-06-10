@@ -6,6 +6,7 @@ import { AcceptParticipantHandler } from 'src/events/application/commands/handle
 import { RejectParticipantHandler } from 'src/events/application/commands/handler/reject-participant.handler';
 import { EVENTS_KAY } from 'src/events/domain/repositories/events.repositories';
 import { EVENT_PARTICIPANT_KEY } from 'src/events/domain/repositories/event-participant.repository';
+import { ID_USER_REPOSITORY } from 'src/users/domain/repositories/user.repository';
 import { EventsRepositories } from 'src/events/domain/repositories/events.repositories';
 import { EventParticipantRepository } from 'src/events/domain/repositories/event-participant.repository';
 import { Events } from 'src/events/domain/entities/events.entities';
@@ -14,6 +15,7 @@ import { JoinEventImpl } from 'src/events/application/commands/impl/join-event.i
 import { LeaveEventImpl } from 'src/events/application/commands/impl/leave-event.impl';
 import { AcceptParticipantImpl } from 'src/events/application/commands/impl/accept-participant.impl';
 import { RejectParticipantImpl } from 'src/events/application/commands/impl/reject-participant.impl';
+import { MessagingGateway } from 'src/messaging/gateway/messaging.gateway';
 
 function createMockEvent(id: string, hostId: string, overrides?: Partial<Events>): Events {
   return new Events(
@@ -42,6 +44,8 @@ describe('JoinEventHandler', () => {
   let handler: JoinEventHandler;
   let eventRepo: jest.Mocked<EventsRepositories>;
   let participantRepo: jest.Mocked<EventParticipantRepository>;
+  let userRepo: jest.Mocked<{ findById: jest.Mock }>;
+  let messagingGateway: jest.Mocked<MessagingGateway>;
 
   beforeEach(async () => {
     eventRepo = { findById: jest.fn(), update: jest.fn() } as any;
@@ -50,12 +54,16 @@ describe('JoinEventHandler', () => {
       countByEventId: jest.fn(),
       create: jest.fn(),
     } as any;
+    userRepo = { findById: jest.fn() } as any;
+    messagingGateway = { sendEventJoinRequest: jest.fn(), sendParticipantStatusUpdate: jest.fn() } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JoinEventHandler,
         { provide: EVENTS_KAY, useValue: eventRepo },
         { provide: EVENT_PARTICIPANT_KEY, useValue: participantRepo },
+        { provide: ID_USER_REPOSITORY, useValue: userRepo },
+        { provide: MessagingGateway, useValue: messagingGateway },
       ],
     }).compile();
 
@@ -71,10 +79,13 @@ describe('JoinEventHandler', () => {
       createMockParticipant('p1', 'event-1', 'user-1'),
     );
 
+    userRepo.findById.mockResolvedValue({ id: 'user-1', username: 'testuser', full_name: 'Test User' });
+
     const result = await handler.execute(new JoinEventImpl('event-1', 'user-1'));
 
     expect(participantRepo.create).toHaveBeenCalled();
     expect(result).toBeDefined();
+    expect(messagingGateway.sendEventJoinRequest).toHaveBeenCalled();
   });
 
   it('should throw NotFoundException if event does not exist', async () => {
@@ -137,6 +148,7 @@ describe('JoinEventHandler', () => {
     participantRepo.findByEventAndUser.mockResolvedValue(null);
     participantRepo.countByEventId.mockResolvedValue(1);
     participantRepo.create.mockRejectedValue(new Error('DB error'));
+    userRepo.findById.mockResolvedValue({ id: 'user-1', username: 'testuser' });
 
     await expect(
       handler.execute(new JoinEventImpl('event-1', 'user-1')),
@@ -214,6 +226,7 @@ describe('AcceptParticipantHandler', () => {
   let handler: AcceptParticipantHandler;
   let eventRepo: jest.Mocked<EventsRepositories>;
   let participantRepo: jest.Mocked<EventParticipantRepository>;
+  let messagingGateway: jest.Mocked<MessagingGateway>;
 
   beforeEach(async () => {
     eventRepo = { findById: jest.fn(), update: jest.fn() } as any;
@@ -222,12 +235,14 @@ describe('AcceptParticipantHandler', () => {
       countByEventId: jest.fn(),
       updateStatus: jest.fn(),
     } as any;
+    messagingGateway = { sendEventJoinRequest: jest.fn(), sendParticipantStatusUpdate: jest.fn() } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AcceptParticipantHandler,
         { provide: EVENTS_KAY, useValue: eventRepo },
         { provide: EVENT_PARTICIPANT_KEY, useValue: participantRepo },
+        { provide: MessagingGateway, useValue: messagingGateway },
       ],
     }).compile();
 
@@ -247,6 +262,7 @@ describe('AcceptParticipantHandler', () => {
     const result = await handler.execute(new AcceptParticipantImpl('event-1', 'user-2', 'host-1'));
     expect(participantRepo.updateStatus).toHaveBeenCalledWith('p1', 'accepted');
     expect(eventRepo.update).toHaveBeenCalledWith('event-1', { current_count: 5 });
+    expect(messagingGateway.sendParticipantStatusUpdate).toHaveBeenCalledWith('user-2', expect.objectContaining({ status: 'accepted' }));
     expect(result).toBeDefined();
   });
 
@@ -277,6 +293,7 @@ describe('RejectParticipantHandler', () => {
   let handler: RejectParticipantHandler;
   let eventRepo: jest.Mocked<EventsRepositories>;
   let participantRepo: jest.Mocked<EventParticipantRepository>;
+  let messagingGateway: jest.Mocked<MessagingGateway>;
 
   beforeEach(async () => {
     eventRepo = { findById: jest.fn() } as any;
@@ -284,12 +301,14 @@ describe('RejectParticipantHandler', () => {
       findByEventAndUser: jest.fn(),
       updateStatus: jest.fn(),
     } as any;
+    messagingGateway = { sendEventJoinRequest: jest.fn(), sendParticipantStatusUpdate: jest.fn() } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RejectParticipantHandler,
         { provide: EVENTS_KAY, useValue: eventRepo },
         { provide: EVENT_PARTICIPANT_KEY, useValue: participantRepo },
+        { provide: MessagingGateway, useValue: messagingGateway },
       ],
     }).compile();
 
@@ -307,6 +326,7 @@ describe('RejectParticipantHandler', () => {
 
     const result = await handler.execute(new RejectParticipantImpl('event-1', 'user-2', 'host-1'));
     expect(participantRepo.updateStatus).toHaveBeenCalledWith('p1', 'rejected');
+    expect(messagingGateway.sendParticipantStatusUpdate).toHaveBeenCalledWith('user-2', expect.objectContaining({ status: 'rejected' }));
     expect(result).toBeDefined();
   });
 
