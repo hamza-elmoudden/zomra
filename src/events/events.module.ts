@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { EVENTS_KAY } from './domain/repositories/events.repositories';
 import { EVENT_PARTICIPANT_KEY } from './domain/repositories/event-participant.repository';
 import { EventsInfrastructure } from './infrastructure/events.infrastructure';
@@ -19,6 +19,7 @@ import { EventsController } from './api/events.controller';
 import { UsersModule } from 'src/users/users.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { CqrsModule } from '@nestjs/cqrs';
+import { MessagingModule } from 'src/messaging/messaging.module';
 
 @Module({
     providers: [
@@ -45,6 +46,6 @@ import { CqrsModule } from '@nestjs/cqrs';
     ],
     controllers: [EventsController],
     exports: [EVENTS_KAY, EVENT_PARTICIPANT_KEY],
-    imports: [UsersModule, PrismaModule, CqrsModule],
+    imports: [UsersModule, PrismaModule, CqrsModule, forwardRef(() => MessagingModule)],
 })
 export class EventsModule {}
