@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+import { ConfigModule } from '@nestjs/config';
+import { MulterModule } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { UsersController } from './api/users.controller';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { StorageService } from 'src/media/infrastructure/storage.service';
 import { ID_USER_REPOSITORY } from './domain/repositories/user.repository';
 import { UserInfrastructure } from './infrastructure/user.infrastructure';
 import { findUserByIdHandler } from './application/queries/handler/find-user-byId.handler';
@@ -11,13 +15,22 @@ import { UpdateUserStatusHandler } from './application/commands/handler/update-u
 import { UpdateUserProfileHandler } from './application/commands/handler/update-user-profile.handler';
 
 @Module({
-  imports: [PrismaModule, CqrsModule],
+  imports: [
+    PrismaModule,
+    CqrsModule,
+    ConfigModule,
+    MulterModule.register({
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  ],
   controllers: [UsersController],
   providers: [
     {
       provide: ID_USER_REPOSITORY,
       useClass: UserInfrastructure,
     },
+    StorageService,
     findUserByIdHandler,
     FindUserByEmailHandler,
     CompleteUserHandler,
