@@ -69,7 +69,7 @@ export class UserInfrastructure implements UserRepository {
           city: user.city,
           reputation_score: user.reputation_score,
           is_verified: user.is_verified,
-          status: user.status,
+          status: user.status as any,
         },
       });
       return !!data;
