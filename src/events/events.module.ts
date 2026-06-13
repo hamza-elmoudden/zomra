@@ -15,6 +15,7 @@ import { ListEventsHandler } from './application/queries/handler/list-events.han
 import { GetNearbyEventsHandler } from './application/queries/handler/get-nearby-events.handler';
 import { GetEventParticipantsHandler } from './application/queries/handler/get-event-participants.handler';
 import { GetMyEventsHandler } from './application/queries/handler/get-my-events.handler';
+import { GetMyJoinedEventsHandler } from './application/queries/handler/get-my-joined-events.handler';
 import { EventsController } from './api/events.controller';
 import { UsersModule } from 'src/users/users.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
@@ -43,6 +44,7 @@ import { MessagingModule } from 'src/messaging/messaging.module';
         GetNearbyEventsHandler,
         GetEventParticipantsHandler,
         GetMyEventsHandler,
+        GetMyJoinedEventsHandler,
     ],
     controllers: [EventsController],
     exports: [EVENTS_KAY, EVENT_PARTICIPANT_KEY],
