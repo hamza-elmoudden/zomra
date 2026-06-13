@@ -1,8 +1,15 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
 import { SendMessageImpl } from "../impl/send-message.impl";
-import { Inject, NotFoundException, BadRequestException, ForbiddenException, InternalServerErrorException } from "@nestjs/common";
+import {
+  Inject,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  InternalServerErrorException,
+} from "@nestjs/common";
 import { ID_CONVERSATION_REPOSITORY, ConversationRepository } from "src/messaging/domain/repositories/conversation.repository";
 import { ID_MESSAGE_REPOSITORY, MessageRepository } from "src/messaging/domain/repositories/message.repository";
+import { MessagingGateway } from "src/messaging/gateway/messaging.gateway";
 import { Message } from "src/messaging/domain/entities/message.entity";
 
 @CommandHandler(SendMessageImpl)
@@ -13,6 +20,7 @@ export class SendMessageHandler implements ICommandHandler<SendMessageImpl> {
     private readonly convRepo: ConversationRepository,
     @Inject(ID_MESSAGE_REPOSITORY)
     private readonly msgRepo: MessageRepository,
+    private readonly messagingGateway: MessagingGateway,
   ) {}
 
   async execute(command: SendMessageImpl): Promise<Message> {
@@ -25,7 +33,10 @@ export class SendMessageHandler implements ICommandHandler<SendMessageImpl> {
       throw new NotFoundException("Conversation not found")
     }
 
-    if (conversation.user_1_id !== command.senderId && conversation.user_2_id !== command.senderId) {
+    if (
+      conversation.user_1_id !== command.senderId &&
+      conversation.user_2_id !== command.senderId
+    ) {
       throw new ForbiddenException("You are not a participant of this conversation")
     }
 
@@ -40,9 +51,13 @@ export class SendMessageHandler implements ICommandHandler<SendMessageImpl> {
     )
 
     try {
-      const result = await this.msgRepo.create(message)
+      const saved = await this.msgRepo.create(message)
       await this.convRepo.updateLastMessageAt(command.conversationId, message.sent_at)
-      return result
+
+      // ── Emit real-time event to both participants ──────────────
+      this.messagingGateway.sendNewMessage(command.conversationId, saved)
+
+      return saved
     } catch (error) {
       throw new InternalServerErrorException("Failed to send message")
     }
