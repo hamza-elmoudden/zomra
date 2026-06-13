@@ -126,6 +126,18 @@ export class EventsInfrastructure implements EventsRepositories {
         return events ? events.map(itm => this.mapToEvents(itm)) : []
     }
 
+    async findEventsByParticipant(userId: string): Promise<Events[]> {
+        const events = await this.prisma.events.findMany({
+            where: {
+                event_participants: {
+                    some: { user_id: userId },
+                },
+            },
+        })
+
+        return events.map(itm => this.mapToEvents(itm))
+    }
+
     async update(id: string, data: Partial<Events>): Promise<Events> {
         const { id: _, created_at, updated_at, ...safeData } = data as any
         const event = await this.prisma.events.update({
