@@ -28,4 +28,5 @@ export class ReviewsController {
   async getByUser(@Param('userId', ParseUUIDPipe) userId: string): Promise<Review[]> {
     return this.queryBus.execute(new GetUserReviewsImpl(userId));
   }
+  
 }
