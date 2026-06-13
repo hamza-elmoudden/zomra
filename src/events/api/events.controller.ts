@@ -19,6 +19,7 @@ import { ListEventsImpl } from "../application/queries/impl/list-events.impl";
 import { GetNearbyEventsImpl } from "../application/queries/impl/get-nearby-events.impl";
 import { GetEventParticipantsImpl } from "../application/queries/impl/get-event-participants.impl";
 import { GetMyEventsImpl } from "../application/queries/impl/get-my-events.impl";
+import { GetMyJoinedEventsImpl } from "../application/queries/impl/get-my-joined-events.impl";
 import { Events } from "../domain/entities/events.entities";
 import { EventParticipant } from "../domain/entities/event-participant.entity";
 
@@ -69,6 +70,12 @@ export class EventsController {
   @UseGuards(JwtAuthGuard)
   async myEvents(@CurrentUser() user: User): Promise<Events[]> {
     return this.queryBus.execute(new GetMyEventsImpl(user.id))
+  }
+
+  @Get('my/joined')
+  @UseGuards(JwtAuthGuard)
+  async myJoinedEvents(@CurrentUser() user: User): Promise<Events[]> {
+    return this.queryBus.execute(new GetMyJoinedEventsImpl(user.id))
   }
 
   @Get(':id')
