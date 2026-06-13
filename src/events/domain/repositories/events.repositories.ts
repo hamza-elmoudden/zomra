@@ -10,6 +10,7 @@ export abstract class EventsRepositories{
     abstract findByLocation(lat:number,lng:number):Promise<Events[] | []>
     abstract findByCategory(category:string):Promise<Events[] | []>
     abstract findByUser(host_id:string):Promise<Events[] | []>
+    abstract findEventsByParticipant(userId: string): Promise<Events[]>
     abstract update(id: string, data: Partial<Events>): Promise<Events>
     abstract delete(id: string): Promise<void>
     abstract findAll(params: {
