@@ -36,6 +36,11 @@ export class CreateReviewHandler implements ICommandHandler<CreateReviewImpl> {
       throw new NotFoundException(`Event with id ${command.eventId} not found`);
     }
 
+    const eventEnd = new Date(event.starts_at.getTime() + event.duration_minutes * 60000)
+    if (eventEnd >= new Date()) {
+      throw new BadRequestException("You can only review after the event has ended");
+    }
+
     const reviewedUser = await this.userRepo.findById(command.reviewedUserId);
     if (!reviewedUser) {
       throw new NotFoundException(`User with id ${command.reviewedUserId} not found`);
