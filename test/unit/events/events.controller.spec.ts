@@ -14,6 +14,7 @@ import { ListEventsImpl } from 'src/events/application/queries/impl/list-events.
 import { GetNearbyEventsImpl } from 'src/events/application/queries/impl/get-nearby-events.impl';
 import { GetEventParticipantsImpl } from 'src/events/application/queries/impl/get-event-participants.impl';
 import { GetMyEventsImpl } from 'src/events/application/queries/impl/get-my-events.impl';
+import { GetMyJoinedEventsImpl } from 'src/events/application/queries/impl/get-my-joined-events.impl';
 import { User } from 'src/users/domain/entities/user.entity';
 
 describe('EventsController', () => {
@@ -218,6 +219,17 @@ describe('EventsController', () => {
 
       const result = await controller.myEvents(mockUser);
       expect(queryBus.execute).toHaveBeenCalledWith(new GetMyEventsImpl('user-1'));
+      expect(result).toEqual(expected);
+    });
+  });
+
+  describe('myJoinedEvents', () => {
+    it('should execute GetMyJoinedEventsImpl', async () => {
+      const expected = [{ id: 'e3' }, { id: 'e4' }];
+      queryBus.execute.mockResolvedValue(expected);
+
+      const result = await controller.myJoinedEvents(mockUser);
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetMyJoinedEventsImpl('user-1'));
       expect(result).toEqual(expected);
     });
   });
