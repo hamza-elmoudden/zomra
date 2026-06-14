@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { UpdateEventHandler } from 'src/events/application/commands/handler/update-event.handler';
 import { DeleteEventHandler } from 'src/events/application/commands/handler/delete-event.handler';
 import { GetEventByIdHandler } from 'src/events/application/queries/handler/get-event-by-id.handler';
@@ -7,8 +7,9 @@ import { ListEventsHandler } from 'src/events/application/queries/handler/list-e
 import { GetNearbyEventsHandler } from 'src/events/application/queries/handler/get-nearby-events.handler';
 import { GetEventParticipantsHandler } from 'src/events/application/queries/handler/get-event-participants.handler';
 import { GetMyEventsHandler } from 'src/events/application/queries/handler/get-my-events.handler';
+import { GetMyJoinedEventsHandler } from 'src/events/application/queries/handler/get-my-joined-events.handler';
 import { EVENTS_KAY } from 'src/events/domain/repositories/events.repositories';
-import { EVENT_PARTICIPANT_KEY } from 'src/events/domain/repositories/event-participant.repository';
+import { EVENT_PARTICIPANT_KEY, EventParticipantRepository } from 'src/events/domain/repositories/event-participant.repository';
 import { EventsRepositories } from 'src/events/domain/repositories/events.repositories';
 import { EventParticipantRepository } from 'src/events/domain/repositories/event-participant.repository';
 import { Events } from 'src/events/domain/entities/events.entities';
@@ -19,10 +20,12 @@ import { ListEventsImpl } from 'src/events/application/queries/impl/list-events.
 import { GetNearbyEventsImpl } from 'src/events/application/queries/impl/get-nearby-events.impl';
 import { GetEventParticipantsImpl } from 'src/events/application/queries/impl/get-event-participants.impl';
 import { GetMyEventsImpl } from 'src/events/application/queries/impl/get-my-events.impl';
+import { GetMyJoinedEventsImpl } from 'src/events/application/queries/impl/get-my-joined-events.impl';
 
 function createMockEvent(id: string, hostId: string): Events {
+  const futureDate = new Date(Date.now() + 86400000)
   return new Events(
-    id, hostId, 'Event', 'sports', new Date(),
+    id, hostId, 'Event', 'sports', futureDate,
     60, 10, 1, 'open' as any, true,
     undefined, undefined, undefined, undefined,
     undefined, undefined, undefined, undefined,
@@ -80,19 +83,38 @@ describe('UpdateEventHandler', () => {
 describe('DeleteEventHandler', () => {
   let handler: DeleteEventHandler;
   let repo: jest.Mocked<EventsRepositories>;
+  let participantRepo: jest.Mocked<EventParticipantRepository>;
 
   beforeEach(async () => {
     repo = { findById: jest.fn(), delete: jest.fn() } as any;
+    participantRepo = { countByEventId: jest.fn() } as any;
+
+    jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DeleteEventHandler,
         { provide: EVENTS_KAY, useValue: repo },
+        { provide: EVENT_PARTICIPANT_KEY, useValue: participantRepo },
       ],
     }).compile();
 
     handler = module.get<DeleteEventHandler>(DeleteEventHandler);
   });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function pastEvent(id: string, hostId: string): Events {
+    const pastDate = new Date(Date.now() - 86400000)
+    return new Events(
+      id, hostId, 'Event', 'sports', pastDate,
+      60, 10, 1, 'open' as any, true,
+      undefined, undefined, undefined, undefined,
+      undefined, undefined, undefined, undefined,
+    )
+  }
 
   it('should delete event if user is the host', async () => {
     repo.findById.mockResolvedValue(createMockEvent('event-1', 'host-1'));
@@ -116,6 +138,24 @@ describe('DeleteEventHandler', () => {
     await expect(
       handler.execute(new DeleteEventImpl('event-1', 'other-user')),
     ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('should throw BadRequestException if event has ended and has participants', async () => {
+    repo.findById.mockResolvedValue(pastEvent('event-1', 'host-1'));
+    participantRepo.countByEventId.mockResolvedValue(3);
+
+    await expect(
+      handler.execute(new DeleteEventImpl('event-1', 'host-1')),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should allow deletion of past event with no participants', async () => {
+    repo.findById.mockResolvedValue(pastEvent('event-1', 'host-1'));
+    participantRepo.countByEventId.mockResolvedValue(0);
+    repo.delete.mockResolvedValue(undefined);
+
+    await handler.execute(new DeleteEventImpl('event-1', 'host-1'));
+    expect(repo.delete).toHaveBeenCalledWith('event-1');
   });
 
   it('should throw InternalServerErrorException on repo error', async () => {
@@ -275,6 +315,40 @@ describe('GetMyEventsHandler', () => {
     repo.findByUser.mockResolvedValue([]);
 
     const result = await handler.execute(new GetMyEventsImpl('user-2'));
+    expect(result).toEqual([]);
+  });
+});
+
+describe('GetMyJoinedEventsHandler', () => {
+  let handler: GetMyJoinedEventsHandler;
+  let repo: jest.Mocked<EventsRepositories>;
+
+  beforeEach(async () => {
+    repo = { findEventsByParticipant: jest.fn() } as any;
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        GetMyJoinedEventsHandler,
+        { provide: EVENTS_KAY, useValue: repo },
+      ],
+    }).compile();
+
+    handler = module.get<GetMyJoinedEventsHandler>(GetMyJoinedEventsHandler);
+  });
+
+  it('should return events the user has joined', async () => {
+    const events = [createMockEvent('e1', 'host-1'), createMockEvent('e2', 'host-2')];
+    repo.findEventsByParticipant.mockResolvedValue(events);
+
+    const result = await handler.execute(new GetMyJoinedEventsImpl('user-1'));
+    expect(repo.findEventsByParticipant).toHaveBeenCalledWith('user-1');
+    expect(result).toEqual(events);
+  });
+
+  it('should return empty array when user has not joined any events', async () => {
+    repo.findEventsByParticipant.mockResolvedValue([]);
+
+    const result = await handler.execute(new GetMyJoinedEventsImpl('user-2'));
     expect(result).toEqual([]);
   });
 });
