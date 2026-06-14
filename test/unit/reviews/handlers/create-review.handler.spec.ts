@@ -15,8 +15,9 @@ jest.mock('crypto', () => ({
   randomUUID: jest.fn(() => 'generated-review-uuid'),
 }));
 
-function mockEvent(id: string): Events {
-  return new Events(id, 'host-1', 'Event', 'sports', new Date(), 60, 10, 5, 'open' as any, true);
+function mockEvent(id: string, future?: boolean): Events {
+  const startsAt = future ? new Date(Date.now() + 86400000) : new Date(Date.now() - 86400000)
+  return new Events(id, 'host-1', 'Event', 'sports', startsAt, 60, 10, 5, 'open' as any, true);
 }
 
 function mockParticipant(eventId: string, userId: string, status: string = 'accepted'): EventParticipant {
@@ -153,6 +154,17 @@ describe('CreateReviewHandler', () => {
     participantRepo.findByEventAndUser
       .mockResolvedValueOnce(mockParticipant('event-1', 'reviewer-1'))
       .mockResolvedValueOnce(null);
+
+    await expect(handler.execute(validCommand)).rejects.toThrow(BadRequestException);
+  });
+
+  it('should throw BadRequestException if event has not ended yet', async () => {
+    eventRepo.findById.mockResolvedValue(mockEvent('event-1', true));
+    userRepo.findById.mockResolvedValue(mockUser('user-2'));
+    participantRepo.findByEventAndUser
+      .mockResolvedValueOnce(mockParticipant('event-1', 'reviewer-1'))
+      .mockResolvedValueOnce(mockParticipant('event-1', 'user-2'));
+    reviewRepo.findByReviewerAndReviewedAndEvent.mockResolvedValue(null);
 
     await expect(handler.execute(validCommand)).rejects.toThrow(BadRequestException);
   });
