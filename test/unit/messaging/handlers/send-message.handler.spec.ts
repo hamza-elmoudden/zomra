@@ -6,6 +6,7 @@ import { ID_MESSAGE_REPOSITORY, MessageRepository } from 'src/messaging/domain/r
 import { Conversation } from 'src/messaging/domain/entities/conversation.entity';
 import { Message } from 'src/messaging/domain/entities/message.entity';
 import { SendMessageImpl } from 'src/messaging/application/commands/impl/send-message.impl';
+import { MessagingGateway } from 'src/messaging/gateway/messaging.gateway';
 
 jest.mock('crypto', () => ({
   randomUUID: jest.fn(() => 'generated-msg-uuid'),
@@ -19,6 +20,7 @@ describe('SendMessageHandler', () => {
   beforeEach(async () => {
     convRepo = { findById: jest.fn(), updateLastMessageAt: jest.fn() } as any;
     msgRepo = { create: jest.fn() } as any;
+    const messagingGateway = { sendNewMessage: jest.fn(), sendMessageDeleted: jest.fn(), sendNewGroupMessage: jest.fn() } as any;
 
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -27,6 +29,7 @@ describe('SendMessageHandler', () => {
         SendMessageHandler,
         { provide: ID_CONVERSATION_REPOSITORY, useValue: convRepo },
         { provide: ID_MESSAGE_REPOSITORY, useValue: msgRepo },
+        { provide: MessagingGateway, useValue: messagingGateway },
       ],
     }).compile();
 
