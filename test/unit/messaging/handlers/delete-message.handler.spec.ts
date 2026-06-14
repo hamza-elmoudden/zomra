@@ -2,8 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
 import { DeleteMessageHandler } from 'src/messaging/application/commands/handler/delete-message.handler';
 import { ID_MESSAGE_REPOSITORY, MessageRepository } from 'src/messaging/domain/repositories/message.repository';
+import { ID_CONVERSATION_REPOSITORY, ConversationRepository } from 'src/messaging/domain/repositories/conversation.repository';
 import { Message } from 'src/messaging/domain/entities/message.entity';
 import { DeleteMessageImpl } from 'src/messaging/application/commands/impl/delete-message.impl';
+import { MessagingGateway } from 'src/messaging/gateway/messaging.gateway';
 
 describe('DeleteMessageHandler', () => {
   let handler: DeleteMessageHandler;
@@ -11,6 +13,8 @@ describe('DeleteMessageHandler', () => {
 
   beforeEach(async () => {
     msgRepo = { findById: jest.fn(), softDelete: jest.fn() } as any;
+    const convRepo = { findById: jest.fn(), updateLastMessageAt: jest.fn() } as any;
+    const messagingGateway = { sendNewMessage: jest.fn(), sendMessageDeleted: jest.fn(), sendNewGroupMessage: jest.fn() } as any;
 
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -18,6 +22,8 @@ describe('DeleteMessageHandler', () => {
       providers: [
         DeleteMessageHandler,
         { provide: ID_MESSAGE_REPOSITORY, useValue: msgRepo },
+        { provide: ID_CONVERSATION_REPOSITORY, useValue: convRepo },
+        { provide: MessagingGateway, useValue: messagingGateway },
       ],
     }).compile();
 
