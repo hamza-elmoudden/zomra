@@ -8,6 +8,7 @@ import { Events } from 'src/events/domain/entities/events.entities';
 import { EventParticipant } from 'src/events/domain/entities/event-participant.entity';
 import { GroupMessage } from 'src/messaging/domain/entities/group-message.entity';
 import { SendGroupMessageImpl } from 'src/messaging/application/commands/impl/send-group-message.impl';
+import { MessagingGateway } from 'src/messaging/gateway/messaging.gateway';
 
 jest.mock('crypto', () => ({
   randomUUID: jest.fn(() => 'generated-gm-uuid'),
@@ -31,6 +32,7 @@ describe('SendGroupMessageHandler', () => {
     groupMsgRepo = { create: jest.fn() } as any;
     eventRepo = { findById: jest.fn() } as any;
     participantRepo = { findByEventAndUser: jest.fn() } as any;
+    const messagingGateway = { sendNewMessage: jest.fn(), sendMessageDeleted: jest.fn(), sendNewGroupMessage: jest.fn() } as any;
 
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -40,6 +42,7 @@ describe('SendGroupMessageHandler', () => {
         { provide: ID_GROUP_MESSAGE_REPOSITORY, useValue: groupMsgRepo },
         { provide: EVENTS_KAY, useValue: eventRepo },
         { provide: EVENT_PARTICIPANT_KEY, useValue: participantRepo },
+        { provide: MessagingGateway, useValue: messagingGateway },
       ],
     }).compile();
 
