@@ -5,13 +5,22 @@ import * as crypto from 'crypto';
 
 export class MockEventRepository implements EventsRepositories {
   private events: Map<string, Events> = new Map();
+  private participants: Map<string, Set<string>> = new Map();
 
   reset(): void {
     this.events.clear();
+    this.participants.clear();
   }
 
   addEvent(event: Events): void {
     this.events.set(event.id, event);
+  }
+
+  addParticipant(eventId: string, userId: string): void {
+    if (!this.participants.has(eventId)) {
+      this.participants.set(eventId, new Set());
+    }
+    this.participants.get(eventId)!.add(userId);
   }
 
   async create(data: Events): Promise<Events> {
@@ -39,6 +48,16 @@ export class MockEventRepository implements EventsRepositories {
 
   async findByUser(host_id: string): Promise<Events[]> {
     return [...this.events.values()].filter((e) => e.host_id === host_id);
+  }
+
+  async findEventsByParticipant(userId: string): Promise<Events[]> {
+    const eventIds: string[] = []
+    for (const [eventId, userIds] of this.participants) {
+      if (userIds.has(userId)) {
+        eventIds.push(eventId)
+      }
+    }
+    return eventIds.map((id) => this.events.get(id)).filter((e): e is Events => e != null)
   }
 
   async update(id: string, data: Partial<Events>): Promise<Events> {
