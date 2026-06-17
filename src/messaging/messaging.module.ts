@@ -13,6 +13,7 @@ import { GroupMessageInfrastructure } from './infrastructure/group-message.infra
 import { SendMessageHandler } from './application/commands/handler/send-message.handler';
 import { DeleteMessageHandler } from './application/commands/handler/delete-message.handler';
 import { SendGroupMessageHandler } from './application/commands/handler/send-group-message.handler';
+import { CreateConversationHandler } from './application/commands/handler/create-conversation.handler';
 import { GetConversationsHandler } from './application/queries/handler/get-conversations.handler';
 import { GetMessagesHandler } from './application/queries/handler/get-messages.handler';
 import { GetGroupMessagesHandler } from './application/queries/handler/get-group-messages.handler';
@@ -35,6 +36,7 @@ import { MessagingGateway } from './gateway/messaging.gateway';
       provide: ID_GROUP_MESSAGE_REPOSITORY,
       useClass: GroupMessageInfrastructure,
     },
+    CreateConversationHandler,
     SendMessageHandler,
     DeleteMessageHandler,
     SendGroupMessageHandler,
