@@ -12,7 +12,7 @@ import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
 import { AdminGuard } from "src/admin/guards/admin.guard";
 import { CurrentUser } from "src/auth/decorators/decorators";
 import { StorageService } from "src/media/infrastructure/storage.service";
-
+import { toSafeUser } from "./user-response.mapper";
 
 @Controller('users')
 export class UsersController {
@@ -24,8 +24,9 @@ export class UsersController {
 
     @Get('me')
     @UseGuards(JwtAuthGuard)
-    async findCurrentUser(@CurrentUser() user: User): Promise<User> {
-        return this.queryBus.execute(new findUserByIdImpl(user.id));
+    async findCurrentUser(@CurrentUser() user: User) {
+        const result = await this.queryBus.execute(new findUserByIdImpl(user.id));
+        return toSafeUser(result);
     }
 
     @Patch('me')
@@ -77,13 +78,16 @@ export class UsersController {
 
     @Get('email/:email')
     @UseGuards(JwtAuthGuard)
-    async findUserByEmail(@Param('email') email: string): Promise<User> {
-        return this.queryBus.execute(new FindUserByEmailImpl(email));
+    async findUserByEmail(@Param('email') email: string) {
+        const result = await this.queryBus.execute(new FindUserByEmailImpl(email));
+        return toSafeUser(result);
     }
 
     @Get(':id')
-    async findUserById(@Param('id') id: string): Promise<User> {
-        return this.queryBus.execute(new findUserByIdImpl(id));
+    @UseGuards(JwtAuthGuard)
+    async findUserById(@Param('id') id: string) {
+        const result = await this.queryBus.execute(new findUserByIdImpl(id));
+        return toSafeUser(result);
     }
 
     @Patch(':id/status')
