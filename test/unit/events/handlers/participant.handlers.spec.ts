@@ -189,7 +189,7 @@ describe('LeaveEventHandler', () => {
 
     await handler.execute(new LeaveEventImpl('event-1', 'user-1'));
     expect(participantRepo.delete).toHaveBeenCalledWith('p1');
-    expect(eventRepo.update).toHaveBeenCalled();
+    expect(eventRepo.update).toHaveBeenCalledWith('event-1', expect.objectContaining({ current_count: 1 }));
   });
 
   it('should throw NotFoundException if event does not exist', async () => {
@@ -261,7 +261,7 @@ describe('AcceptParticipantHandler', () => {
 
     const result = await handler.execute(new AcceptParticipantImpl('event-1', 'user-2', 'host-1'));
     expect(participantRepo.updateStatus).toHaveBeenCalledWith('p1', 'accepted');
-    expect(eventRepo.update).toHaveBeenCalledWith('event-1', { current_count: 5 });
+    expect(eventRepo.update).toHaveBeenCalledWith('event-1', expect.objectContaining({ current_count: 5 }));
     expect(messagingGateway.sendParticipantStatusUpdate).toHaveBeenCalledWith('user-2', expect.objectContaining({ status: 'accepted' }));
     expect(result).toBeDefined();
   });

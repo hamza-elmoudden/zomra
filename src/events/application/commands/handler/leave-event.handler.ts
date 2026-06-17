@@ -31,7 +31,10 @@ export class LeaveEventHandler implements ICommandHandler<LeaveEventImpl> {
       await this.participantRepo.delete(participant.id)
 
       const currentAccepted = await this.participantRepo.countByEventId(command.eventId)
-      await this.eventRepo.update(command.eventId, { current_count: currentAccepted } as any)
+      const newStatus = event.status === 'full' && currentAccepted < event.max_participants
+        ? 'open'
+        : event.status
+      await this.eventRepo.update(command.eventId, { current_count: currentAccepted, status: newStatus } as any)
     } catch (error) {
       throw new InternalServerErrorException('Error leaving event')
     }

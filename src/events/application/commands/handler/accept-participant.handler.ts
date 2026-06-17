@@ -49,7 +49,8 @@ export class AcceptParticipantHandler implements ICommandHandler<AcceptParticipa
       const result = await this.participantRepo.updateStatus(participant.id, 'accepted')
 
       const acceptedCount = await this.participantRepo.countByEventId(command.eventId)
-      await this.eventRepo.update(command.eventId, { current_count: acceptedCount } as any)
+      const newStatus = acceptedCount >= event.max_participants ? 'full' : event.status
+      await this.eventRepo.update(command.eventId, { current_count: acceptedCount, status: newStatus } as any)
 
       this.messagingGateway.sendParticipantStatusUpdate(command.userId, {
         eventId: command.eventId,
