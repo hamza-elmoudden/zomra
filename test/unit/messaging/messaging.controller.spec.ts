@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { MessagingController } from 'src/messaging/api/messaging.controller';
-import { ID_CONVERSATION_REPOSITORY, ConversationRepository } from 'src/messaging/domain/repositories/conversation.repository';
 import { Conversation } from 'src/messaging/domain/entities/conversation.entity';
 import { User } from 'src/users/domain/entities/user.entity';
+import { CreateConversationImpl } from 'src/messaging/application/commands/impl/create-conversation.impl';
 import { GetConversationsImpl } from 'src/messaging/application/queries/impl/get-conversations.impl';
 import { GetMessagesImpl } from 'src/messaging/application/queries/impl/get-messages.impl';
 import { SendMessageImpl } from 'src/messaging/application/commands/impl/send-message.impl';
@@ -11,30 +11,20 @@ import { DeleteMessageImpl } from 'src/messaging/application/commands/impl/delet
 import { GetGroupMessagesImpl } from 'src/messaging/application/queries/impl/get-group-messages.impl';
 import { SendGroupMessageImpl } from 'src/messaging/application/commands/impl/send-group-message.impl';
 
-jest.mock('crypto', () => ({
-  randomUUID: jest.fn(() => 'generated-conv-uuid'),
-}));
-
 describe('MessagingController', () => {
   let controller: MessagingController;
   let commandBus: jest.Mocked<CommandBus>;
   let queryBus: jest.Mocked<QueryBus>;
-  let convRepo: jest.Mocked<ConversationRepository>;
 
   beforeEach(async () => {
     commandBus = { execute: jest.fn() } as any;
     queryBus = { execute: jest.fn() } as any;
-    convRepo = {
-      findByUsers: jest.fn(),
-      create: jest.fn(),
-    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MessagingController],
       providers: [
         { provide: CommandBus, useValue: commandBus },
         { provide: QueryBus, useValue: queryBus },
-        { provide: ID_CONVERSATION_REPOSITORY, useValue: convRepo },
       ],
     }).compile();
 
@@ -44,39 +34,15 @@ describe('MessagingController', () => {
   const mockUser = { id: 'user-a' } as User;
 
   describe('createConversation', () => {
-    it('should create a new conversation', async () => {
-      convRepo.findByUsers.mockResolvedValue(null);
-      const expectedConv = new Conversation('generated-conv-uuid', 'other-user', 'user-a', 'event-1');
-      convRepo.create.mockResolvedValue(expectedConv);
+    it('should execute CreateConversationImpl', async () => {
+      const expected = new Conversation('c1', 'other-user', 'user-a', 'event-1');
+      commandBus.execute.mockResolvedValue(expected);
 
       const dto = { recipientId: 'other-user', eventId: 'event-1' };
       const result = await controller.createConversation(dto, mockUser);
 
-      expect(convRepo.findByUsers).toHaveBeenCalledWith('other-user', 'user-a');
-      expect(convRepo.create).toHaveBeenCalled();
-      expect(result).toEqual(expectedConv);
-    });
-
-    it('should return existing conversation if one exists', async () => {
-      const existing = new Conversation('existing-id', 'other-user', 'user-a', 'event-1');
-      convRepo.findByUsers.mockResolvedValue(existing);
-
-      const dto = { recipientId: 'other-user', eventId: 'event-1' };
-      const result = await controller.createConversation(dto, mockUser);
-
-      expect(convRepo.findByUsers).toHaveBeenCalled();
-      expect(convRepo.create).not.toHaveBeenCalled();
-      expect(result).toEqual(existing);
-    });
-
-    it('should normalize user IDs (user-a < other-user)', async () => {
-      convRepo.findByUsers.mockResolvedValue(null);
-      convRepo.create.mockResolvedValue(new Conversation('id', 'other-user', 'user-a'));
-
-      const dto = { recipientId: 'other-user' };
-      await controller.createConversation(dto, mockUser);
-
-      expect(convRepo.findByUsers).toHaveBeenCalledWith('other-user', 'user-a');
+      expect(commandBus.execute).toHaveBeenCalledWith(new CreateConversationImpl('user-a', 'other-user', 'event-1'));
+      expect(result).toEqual(expected);
     });
   });
 
@@ -96,7 +62,7 @@ describe('MessagingController', () => {
       queryBus.execute.mockResolvedValue([]);
 
       await controller.getMessages('conv-1', mockUser);
-      expect(queryBus.execute).toHaveBeenCalledWith(new GetMessagesImpl('conv-1'));
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetMessagesImpl('conv-1', 'user-a'));
     });
   });
 
@@ -125,8 +91,8 @@ describe('MessagingController', () => {
     it('should execute GetGroupMessagesImpl', async () => {
       queryBus.execute.mockResolvedValue([]);
 
-      await controller.getGroupMessages('event-1');
-      expect(queryBus.execute).toHaveBeenCalledWith(new GetGroupMessagesImpl('event-1'));
+      await controller.getGroupMessages('event-1', mockUser);
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetGroupMessagesImpl('event-1', 'user-a'));
     });
   });
 

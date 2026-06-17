@@ -11,12 +11,10 @@ import { CreateConversationDto } from "./dto/create-conversation.dto";
 import { SendMessageImpl } from "../application/commands/impl/send-message.impl";
 import { DeleteMessageImpl } from "../application/commands/impl/delete-message.impl";
 import { SendGroupMessageImpl } from "../application/commands/impl/send-group-message.impl";
+import { CreateConversationImpl } from "../application/commands/impl/create-conversation.impl";
 import { GetConversationsImpl } from "../application/queries/impl/get-conversations.impl";
 import { GetMessagesImpl } from "../application/queries/impl/get-messages.impl";
 import { GetGroupMessagesImpl } from "../application/queries/impl/get-group-messages.impl";
-import { ID_CONVERSATION_REPOSITORY, ConversationRepository } from "../domain/repositories/conversation.repository";
-import { Inject } from "@nestjs/common";
-import { Conversation as ConvEntity } from "../domain/entities/conversation.entity";
 
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -25,8 +23,6 @@ export class MessagingController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-    @Inject(ID_CONVERSATION_REPOSITORY)
-    private readonly convRepo: ConversationRepository,
   ) {}
 
   @Post('conversations')
@@ -34,20 +30,7 @@ export class MessagingController {
     @Body() dto: CreateConversationDto,
     @CurrentUser() user: User,
   ): Promise<Conversation> {
-    const user1Id = user.id < dto.recipientId ? user.id : dto.recipientId
-    const user2Id = user.id < dto.recipientId ? dto.recipientId : user.id
-
-    const existing = await this.convRepo.findByUsers(user1Id, user2Id)
-    if (existing) return existing
-
-    const conversation = new ConvEntity(
-      crypto.randomUUID(),
-      user1Id,
-      user2Id,
-      dto.eventId,
-    )
-
-    return this.convRepo.create(conversation)
+    return this.commandBus.execute(new CreateConversationImpl(user.id, dto.recipientId, dto.eventId))
   }
 
   @Get('conversations')
@@ -60,7 +43,7 @@ export class MessagingController {
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
     @CurrentUser() user: User,
   ): Promise<Message[]> {
-    return this.queryBus.execute(new GetMessagesImpl(conversationId))
+    return this.queryBus.execute(new GetMessagesImpl(conversationId, user.id))
   }
 
   @Post('conversations/:conversationId/messages')
@@ -83,8 +66,9 @@ export class MessagingController {
   @Get('events/:eventId/messages')
   async getGroupMessages(
     @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: User,
   ): Promise<GroupMessage[]> {
-    return this.queryBus.execute(new GetGroupMessagesImpl(eventId))
+    return this.queryBus.execute(new GetGroupMessagesImpl(eventId, user.id))
   }
 
   @Post('events/:eventId/messages')

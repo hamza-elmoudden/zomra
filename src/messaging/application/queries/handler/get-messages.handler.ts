@@ -1,6 +1,6 @@
 import { IQueryHandler, QueryHandler } from "@nestjs/cqrs";
 import { GetMessagesImpl } from "../impl/get-messages.impl";
-import { Inject, NotFoundException } from "@nestjs/common";
+import { Inject, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { ID_MESSAGE_REPOSITORY, MessageRepository } from "src/messaging/domain/repositories/message.repository";
 import { ID_CONVERSATION_REPOSITORY, ConversationRepository } from "src/messaging/domain/repositories/conversation.repository";
 import { Message } from "src/messaging/domain/entities/message.entity";
@@ -19,6 +19,10 @@ export class GetMessagesHandler implements IQueryHandler<GetMessagesImpl> {
     const conversation = await this.convRepo.findById(query.conversationId)
     if (!conversation) {
       throw new NotFoundException("Conversation not found")
+    }
+
+    if (conversation.user_1_id !== query.userId && conversation.user_2_id !== query.userId) {
+      throw new ForbiddenException("You are not a participant of this conversation")
     }
 
     return this.msgRepo.findByConversationId(query.conversationId)
