@@ -33,18 +33,22 @@ describe('AuthController', () => {
   });
 
   describe('googleCallback', () => {
-    it('should call authService.googleLogin and redirect', async () => {
+    it('should call authService.googleLogin, set httpOnly cookies, and redirect without tokens in URL', async () => {
       const user = { id: '1', email: 'test@test.com' } as User;
       const tokens = { accessToken: 'at', refreshToken: 'rt' };
       authService.googleLogin.mockResolvedValue(tokens as any);
 
       const req = { user, query: { state: '{}' } };
-      const res = { redirect: jest.fn() };
+      const res = { redirect: jest.fn(), cookie: jest.fn() };
 
       await controller.googleCallback(req as any, res as any);
 
       expect(authService.googleLogin).toHaveBeenCalledWith(user);
-      expect(res.redirect).toHaveBeenCalled();
+      expect(res.cookie).toHaveBeenCalledWith('access_token', 'at', expect.objectContaining({ httpOnly: true }));
+      expect(res.cookie).toHaveBeenCalledWith('refresh_token', 'rt', expect.objectContaining({ httpOnly: true }));
+      const redirectUrl = res.redirect.mock.calls[0][0];
+      expect(redirectUrl).toContain('/auth/success');
+      expect(redirectUrl).not.toContain('access_token=');
     });
   });
 

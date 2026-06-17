@@ -60,14 +60,14 @@ export class AuthController {
     const base = process.env.FRONTEND_URL;
     const isProd = process.env.NODE_ENV === 'production';
 
+    res.cookie('access_token', tokens.accessToken, {
+      httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 15 * 60 * 1000,
+    });
+    res.cookie('refresh_token', tokens.refreshToken, {
+      httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
 
-
-    const redirectUrl = `${base}/auth/success?access_token=${tokens.accessToken}&refresh_token=${tokens.refreshToken}`;
-    return res.redirect(redirectUrl);
-
-
-
-
+    return res.redirect(`${base}/auth/success`);
   }
 
   // ─────────────────────────────────────────────────────────────
