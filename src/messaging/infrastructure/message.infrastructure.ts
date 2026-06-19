@@ -7,6 +7,11 @@ import { MessageRepository } from "../domain/repositories/message.repository";
 export class MessageInfrastructure implements MessageRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly SELECT = {
+    id: true, conversation_id: true, sender_id: true, content: true,
+    is_read: true, is_deleted: true, sent_at: true,
+  } as const;
+
   private mapToMessage(data: any): Message {
     return new Message(
       data.id,
@@ -38,6 +43,7 @@ export class MessageInfrastructure implements MessageRepository {
     try {
       const data = await this.prisma.messages.findMany({
         where: { conversation_id: conversationId, is_deleted: false },
+        select: this.SELECT,
         orderBy: { sent_at: "asc" },
       })
       return data.map((m) => this.mapToMessage(m))
@@ -48,7 +54,10 @@ export class MessageInfrastructure implements MessageRepository {
 
   async findById(id: string): Promise<Message | null> {
     try {
-      const data = await this.prisma.messages.findUnique({ where: { id } })
+      const data = await this.prisma.messages.findUnique({
+        where: { id },
+        select: this.SELECT,
+      })
       return data ? this.mapToMessage(data) : null
     } catch (error) {
       throw new InternalServerErrorException("Failed to find message")

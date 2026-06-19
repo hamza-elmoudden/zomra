@@ -7,6 +7,11 @@ import { ConversationRepository } from "../domain/repositories/conversation.repo
 export class ConversationInfrastructure implements ConversationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly SELECT = {
+    id: true, user_1_id: true, user_2_id: true, event_id: true,
+    created_at: true, last_message_at: true,
+  } as const;
+
   private mapToConversation(data: any): Conversation {
     return new Conversation(
       data.id,
@@ -35,7 +40,10 @@ export class ConversationInfrastructure implements ConversationRepository {
 
   async findById(id: string): Promise<Conversation | null> {
     try {
-      const data = await this.prisma.conversations.findUnique({ where: { id } })
+      const data = await this.prisma.conversations.findUnique({
+        where: { id },
+        select: this.SELECT,
+      })
       return data ? this.mapToConversation(data) : null
     } catch (error) {
       throw new InternalServerErrorException("Failed to find conversation")
@@ -48,6 +56,7 @@ export class ConversationInfrastructure implements ConversationRepository {
         where: {
           user_1_id_user_2_id: { user_1_id: user1Id, user_2_id: user2Id },
         },
+        select: this.SELECT,
       })
       return data ? this.mapToConversation(data) : null
     } catch (error) {
@@ -61,6 +70,7 @@ export class ConversationInfrastructure implements ConversationRepository {
         where: {
           OR: [{ user_1_id: userId }, { user_2_id: userId }],
         },
+        select: this.SELECT,
         orderBy: { last_message_at: "desc" },
       })
       return data.map((c) => this.mapToConversation(c))

@@ -7,6 +7,11 @@ import { GroupMessageRepository } from "../domain/repositories/group-message.rep
 export class GroupMessageInfrastructure implements GroupMessageRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly SELECT = {
+    id: true, event_id: true, sender_id: true, content: true,
+    is_deleted: true, sent_at: true,
+  } as const;
+
   private mapToGroupMessage(data: any): GroupMessage {
     return new GroupMessage(
       data.id,
@@ -37,6 +42,7 @@ export class GroupMessageInfrastructure implements GroupMessageRepository {
     try {
       const data = await this.prisma.group_event_messages.findMany({
         where: { event_id: eventId, is_deleted: false },
+        select: this.SELECT,
         orderBy: { sent_at: "asc" },
       })
       return data.map((m) => this.mapToGroupMessage(m))
@@ -47,7 +53,10 @@ export class GroupMessageInfrastructure implements GroupMessageRepository {
 
   async findById(id: string): Promise<GroupMessage | null> {
     try {
-      const data = await this.prisma.group_event_messages.findUnique({ where: { id } })
+      const data = await this.prisma.group_event_messages.findUnique({
+        where: { id },
+        select: this.SELECT,
+      })
       return data ? this.mapToGroupMessage(data) : null
     } catch (error) {
       throw new InternalServerErrorException("Failed to find group message")
