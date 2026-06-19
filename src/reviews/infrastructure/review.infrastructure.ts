@@ -7,6 +7,11 @@ import { ReviewRepository } from "../domain/repositories/review.repository";
 export class ReviewInfrastructure implements ReviewRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly SELECT = {
+    id: true, reviewer_id: true, reviewed_user_id: true, event_id: true,
+    rating: true, comment: true, created_at: true,
+  } as const;
+
   private mapToReview(data: any): Review {
     return new Review(
       data.id,
@@ -50,6 +55,7 @@ export class ReviewInfrastructure implements ReviewRepository {
             event_id: eventId,
           },
         },
+        select: this.SELECT,
       });
       return data ? this.mapToReview(data) : null;
     } catch (error) {
@@ -61,6 +67,7 @@ export class ReviewInfrastructure implements ReviewRepository {
     try {
       const data = await this.prisma.reviews.findMany({
         where: { reviewed_user_id: userId },
+        select: this.SELECT,
         orderBy: { created_at: "desc" },
       });
       return data.map((r) => this.mapToReview(r));

@@ -9,6 +9,9 @@ export class InterestsInfrastructure  implements InterestsRepositories{
         private readonly prisma:PrismaService
     ){}
 
+    private readonly SELECT = {
+        id: true, name: true, icon: true, color_hex: true,
+    } as const;
 
     mapToInterests(data: any): Interests {
         return new Interests(
@@ -43,30 +46,30 @@ export class InterestsInfrastructure  implements InterestsRepositories{
 
 
     async getAllInterests(): Promise<Interests[] | []> {
-        const interests = await this.prisma.interests.findMany()
+        const interests = await this.prisma.interests.findMany({
+            select: this.SELECT,
+        })
 
-        return interests ? interests.map(itm => this.mapToInterests(itm)) : []
+        return interests.map(itm => this.mapToInterests(itm))
     }
 
 
     async getById(id: number): Promise<Interests | null> {
-       const result = await this.prisma.interests.findUnique({
-        where:{
-            id
-        }
-       })
+        const result = await this.prisma.interests.findUnique({
+            where: { id },
+            select: this.SELECT,
+        })
 
-       return result ? this.mapToInterests(result) : null
+        return result ? this.mapToInterests(result) : null
     }
 
 
     async getByName(name: string): Promise<Interests | null> {
-       const result = await this.prisma.interests.findUnique({
-        where:{
-            name
-        }
-       })
+        const result = await this.prisma.interests.findUnique({
+            where: { name },
+            select: this.SELECT,
+        })
 
-       return result ? this.mapToInterests(result) : null
+        return result ? this.mapToInterests(result) : null
     }
 }

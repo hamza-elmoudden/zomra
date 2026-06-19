@@ -8,6 +8,12 @@ import { ReportRepository } from '../domain/repositories/report.repository';
 export class ReportInfrastructure implements ReportRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly SELECT = {
+    id: true, reporter_id: true, target_type: true, target_id: true,
+    reason: true, details: true, status: true, resolved_by: true,
+    created_at: true, resolved_at: true,
+  } as const;
+
   private mapToReport(data: any): Report {
     return new Report(
       data.id,
@@ -43,6 +49,7 @@ export class ReportInfrastructure implements ReportRepository {
   async findAll(): Promise<Report[]> {
     try {
       const data = await this.prisma.reports.findMany({
+        select: this.SELECT,
         orderBy: { created_at: 'desc' },
       });
       return data.map((r) => this.mapToReport(r));
@@ -53,7 +60,10 @@ export class ReportInfrastructure implements ReportRepository {
 
   async findById(id: string): Promise<Report | null> {
     try {
-      const data = await this.prisma.reports.findUnique({ where: { id } });
+      const data = await this.prisma.reports.findUnique({
+        where: { id },
+        select: this.SELECT,
+      });
       return data ? this.mapToReport(data) : null;
     } catch (error) {
       throw new InternalServerErrorException('Failed to find report');

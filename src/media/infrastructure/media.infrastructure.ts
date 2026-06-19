@@ -7,6 +7,12 @@ import { MediaRepository } from "../domain/repositories/media.repository";
 export class MediaInfrastructure implements MediaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly SELECT = {
+    id: true, event_id: true, uploader_id: true, media_type: true,
+    url: true, thumbnail_url: true, duration_seconds: true,
+    views_count: true, likes_count: true, created_at: true,
+  } as const;
+
   private mapToMedia(data: any): Media {
     return new Media(
       data.id,
@@ -45,6 +51,7 @@ export class MediaInfrastructure implements MediaRepository {
     try {
       const data = await this.prisma.media.findMany({
         where: { event_id: eventId },
+        select: this.SELECT,
         orderBy: { created_at: "desc" },
       });
       return data.map((m) => this.mapToMedia(m));
@@ -55,7 +62,10 @@ export class MediaInfrastructure implements MediaRepository {
 
   async findById(id: string): Promise<Media | null> {
     try {
-      const data = await this.prisma.media.findUnique({ where: { id } });
+      const data = await this.prisma.media.findUnique({
+        where: { id },
+        select: this.SELECT,
+      });
       return data ? this.mapToMedia(data) : null;
     } catch (error) {
       throw new InternalServerErrorException("Failed to find media");

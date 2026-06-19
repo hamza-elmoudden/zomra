@@ -7,6 +7,11 @@ import { NotificationRepository } from '../domain/repositories/notification.repo
 export class NotificationInfrastructure implements NotificationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly SELECT = {
+    id: true, user_id: true, type: true, payload: true,
+    is_read: true, created_at: true,
+  } as const;
+
   private mapToNotification(data: any): Notification {
     return new Notification(
       data.id,
@@ -37,6 +42,7 @@ export class NotificationInfrastructure implements NotificationRepository {
     try {
       const data = await this.prisma.notifications.findMany({
         where: { user_id: userId },
+        select: this.SELECT,
         orderBy: [{ is_read: 'asc' }, { created_at: 'desc' }],
       });
       return data.map((n) => this.mapToNotification(n));
@@ -47,7 +53,10 @@ export class NotificationInfrastructure implements NotificationRepository {
 
   async findById(id: string): Promise<Notification | null> {
     try {
-      const data = await this.prisma.notifications.findUnique({ where: { id } });
+      const data = await this.prisma.notifications.findUnique({
+        where: { id },
+        select: this.SELECT,
+      });
       return data ? this.mapToNotification(data) : null;
     } catch (error) {
       throw new InternalServerErrorException('Failed to find notification');

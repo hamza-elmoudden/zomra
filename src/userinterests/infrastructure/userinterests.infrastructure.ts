@@ -10,6 +10,10 @@ export class UserInterestsInfrastructure implements UserInterestsRepositories {
         private readonly prisma: PrismaService,
     ) {}
 
+    private readonly SELECT = {
+        user_id: true, interest_id: true, created_at: true,
+    } as const;
+
     private mapToUserInterest(data: any): UserInterests {
         return new UserInterests(
             data.user_id,
@@ -22,6 +26,7 @@ export class UserInterestsInfrastructure implements UserInterestsRepositories {
         try {
             const data = await this.prisma.user_interests.findMany({
                 where: { user_id: userId },
+                select: this.SELECT,
             })
             return data.map((item) => this.mapToUserInterest(item))
         } catch (error) {
@@ -35,6 +40,7 @@ export class UserInterestsInfrastructure implements UserInterestsRepositories {
                 where: {
                     user_id_interest_id: { user_id: userId, interest_id: interestId },
                 },
+                select: this.SELECT,
             })
             return data ? this.mapToUserInterest(data) : null
         } catch (error) {
