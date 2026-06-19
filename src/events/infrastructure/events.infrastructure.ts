@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { events } from "generated/prisma/client";
+
 import { Events } from "../domain/entities/events.entities";
 import { EventsRepositories } from "../domain/repositories/events.repositories";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -18,13 +18,24 @@ function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 @Injectable()
 export class EventsInfrastructure implements EventsRepositories {
 
-
     constructor(
         private readonly prisma: PrismaService
-    ) { }
-    
+    ) {}
 
-    mapToEvents(event: events): Events {
+    private readonly LIST_SELECT = {
+        id: true, host_id: true, title: true, category: true, starts_at: true,
+        duration_minutes: true, max_participants: true, current_count: true,
+        status: true, is_public: true, city: true, lat: true, lng: true,
+    } as const;
+
+    private readonly DETAIL_SELECT = {
+        id: true, host_id: true, title: true, description: true, category: true,
+        address: true, city: true, starts_at: true, duration_minutes: true,
+        max_participants: true, current_count: true, status: true,
+        is_public: true, created_at: true, updated_at: true, lat: true, lng: true,
+    } as const;
+
+    mapToEvents(event: any): Events {
         return new Events(
             event.id,
             event.host_id,
@@ -76,54 +87,48 @@ export class EventsInfrastructure implements EventsRepositories {
     }
 
     async findById(id: string): Promise<Events | null> {
-        const events = await this.prisma.events.findUnique({
-            where: {
-                id
-            }
+        const event = await this.prisma.events.findUnique({
+            where: { id },
+            select: this.DETAIL_SELECT,
         })
 
-        return events ? this.mapToEvents(events) : null
+        return event ? this.mapToEvents(event) : null
     }
 
     async findByCity(city: string): Promise<Events[] | []> {
         const events = await this.prisma.events.findMany({
-            where: {
-                city
-            }
+            where: { city },
+            select: this.LIST_SELECT,
         })
 
-        return events ? events.map(itm => this.mapToEvents(itm)) : []
+        return events.map(itm => this.mapToEvents(itm))
     }
 
     async findByLocation(lat: number, lng: number): Promise<Events[] | []> {
         const events = await this.prisma.events.findMany({
-            where:{
-                lat,
-                lng
-            }
+            where: { lat, lng },
+            select: this.LIST_SELECT,
         })
 
-        return events ? events.map(itm => this.mapToEvents(itm)) : []
+        return events.map(itm => this.mapToEvents(itm))
     }
 
     async findByCategory(category: string): Promise<Events[] | []> {
-         const events = await this.prisma.events.findMany({
-            where:{
-                category
-            }
+        const events = await this.prisma.events.findMany({
+            where: { category },
+            select: this.LIST_SELECT,
         })
 
-        return events ? events.map(itm => this.mapToEvents(itm)) : []
+        return events.map(itm => this.mapToEvents(itm))
     }
 
     async findByUser(host_id: string): Promise<Events[] | []> {
         const events = await this.prisma.events.findMany({
-            where:{
-                host_id
-            }
+            where: { host_id },
+            select: this.LIST_SELECT,
         })
 
-        return events ? events.map(itm => this.mapToEvents(itm)) : []
+        return events.map(itm => this.mapToEvents(itm))
     }
 
     async findEventsByParticipant(userId: string): Promise<Events[]> {
@@ -133,6 +138,7 @@ export class EventsInfrastructure implements EventsRepositories {
                     some: { user_id: userId },
                 },
             },
+            select: this.LIST_SELECT,
         })
 
         return events.map(itm => this.mapToEvents(itm))
@@ -172,6 +178,7 @@ export class EventsInfrastructure implements EventsRepositories {
             where,
             skip,
             take: limit,
+            select: this.LIST_SELECT,
             orderBy: { starts_at: 'asc' },
         })
 
@@ -187,6 +194,7 @@ export class EventsInfrastructure implements EventsRepositories {
                 lat: { gte: lat - latDelta, lte: lat + latDelta },
                 lng: { gte: lng - lngDelta, lte: lng + lngDelta },
             },
+            select: this.LIST_SELECT,
         })
 
         return events
