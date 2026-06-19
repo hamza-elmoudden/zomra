@@ -34,8 +34,8 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
 
     if (!raw) throw new UnauthorizedException('No refresh token provided');
 
-    // 2. Load user from DB
-    const user = await this.userRepo.findById(payload.sub);
+    // 2. Load user from DB (needs refresh_token for comparison)
+    const user = await this.userRepo.findByIdWithCredentials(payload.sub);
     if (!user || !user.refresh_token) {
       throw new UnauthorizedException('Refresh token revoked or not found');
     }

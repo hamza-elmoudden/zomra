@@ -7,6 +7,18 @@ import { UserRepository } from '../domain/repositories/user.repository';
 export class UserInfrastructure implements UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly PUBLIC_SELECT = {
+    id: true, username: true, email: true, full_name: true, bio: true,
+    avatar_url: true, lat: true, lng: true, country: true, city: true,
+    reputation_score: true, total_reviews: true, is_verified: true,
+    status: true, created_at: true, role: true,
+  } as const;
+
+  private readonly AUTH_SELECT = {
+    ...this.PUBLIC_SELECT,
+    password_hash: true, refresh_token: true, google_id: true, phone: true,
+  } as const;
+
   // ─── Mapping ────────────────────────────────────────────────
   private mapToUser(data: any): User {
     return new User(
@@ -101,20 +113,52 @@ export class UserInfrastructure implements UserRepository {
     }
   }
 
-  // ─── Find by ID ──────────────────────────────────────────────
+  // ─── Find by ID (public — no credentials) ────────────────────
   async findById(id: string): Promise<User | null> {
     try {
-      const data = await this.prisma.users.findUnique({ where: { id } });
+      const data = await this.prisma.users.findUnique({
+        where: { id },
+        select: this.PUBLIC_SELECT,
+      });
       return data ? this.mapToUser(data) : null;
     } catch (error) {
       throw new InternalServerErrorException('Failed to find user by ID');
     }
   }
 
-  // ─── Find by Email ───────────────────────────────────────────
+  // ─── Find by ID (auth — includes credentials) ────────────────
+  async findByIdWithCredentials(id: string): Promise<User | null> {
+    try {
+      const data = await this.prisma.users.findUnique({
+        where: { id },
+        select: this.AUTH_SELECT,
+      });
+      return data ? this.mapToUser(data) : null;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to find user by ID');
+    }
+  }
+
+  // ─── Find by Email (public — no credentials) ─────────────────
   async findByEmail(email: string): Promise<User | null> {
     try {
-      const data = await this.prisma.users.findUnique({ where: { email } });
+      const data = await this.prisma.users.findUnique({
+        where: { email },
+        select: this.PUBLIC_SELECT,
+      });
+      return data ? this.mapToUser(data) : null;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to find user by email');
+    }
+  }
+
+  // ─── Find by Email (auth — includes credentials) ──────────────
+  async findByEmailWithCredentials(email: string): Promise<User | null> {
+    try {
+      const data = await this.prisma.users.findUnique({
+        where: { email },
+        select: this.AUTH_SELECT,
+      });
       return data ? this.mapToUser(data) : null;
     } catch (error) {
       throw new InternalServerErrorException('Failed to find user by email');
@@ -126,6 +170,7 @@ export class UserInfrastructure implements UserRepository {
     try {
       const data = await this.prisma.users.findFirst({
         where: { google_id: googleId },
+        select: this.PUBLIC_SELECT,
       });
       return data ? this.mapToUser(data) : null;
     } catch (error) {
@@ -136,7 +181,10 @@ export class UserInfrastructure implements UserRepository {
   // ─── Find by City ────────────────────────────────────────────
   async findByCity(city: string): Promise<User[] | null> {
     try {
-      const data = await this.prisma.users.findMany({ where: { city } });
+      const data = await this.prisma.users.findMany({
+        where: { city },
+        select: this.PUBLIC_SELECT,
+      });
       return data.length ? data.map((d) => this.mapToUser(d)) : null;
     } catch (error) {
       throw new InternalServerErrorException('Failed to find users by city');
@@ -149,6 +197,7 @@ export class UserInfrastructure implements UserRepository {
       const data = await this.prisma.users.update({
         where: { id: userId },
         data: { google_id: googleId },
+        select: this.PUBLIC_SELECT,
       });
       return this.mapToUser(data);
     } catch (error) {
@@ -245,6 +294,7 @@ export class UserInfrastructure implements UserRepository {
       // 1. Check by google_id
       const byGoogleId = await this.prisma.users.findFirst({
         where: { google_id: params.googleId },
+        select: this.PUBLIC_SELECT,
       });
       if (byGoogleId) {
         return { user: this.mapToUser(byGoogleId), isNew: false };
@@ -253,11 +303,13 @@ export class UserInfrastructure implements UserRepository {
       // 2. Check by email — link google_id to existing account
       const byEmail = await this.prisma.users.findUnique({
         where: { email: params.email },
+        select: this.PUBLIC_SELECT,
       });
       if (byEmail) {
         const updated = await this.prisma.users.update({
           where: { id: byEmail.id },
           data: { google_id: params.googleId },
+          select: this.PUBLIC_SELECT,
         });
         return { user: this.mapToUser(updated), isNew: false };
       }
@@ -265,6 +317,7 @@ export class UserInfrastructure implements UserRepository {
       // 3. Create brand-new user (profile completion pending)
       const username = `${params.email.split('@')[0]}_${Date.now()}`;
       const created = await this.prisma.users.create({
+        select: this.PUBLIC_SELECT,
         data: {
           email: params.email,
           google_id: params.googleId,
@@ -291,6 +344,7 @@ export class UserInfrastructure implements UserRepository {
   }): Promise<User> {
     try {
       const created = await this.prisma.users.create({
+        select: this.PUBLIC_SELECT,
         data: {
           username: data.username,
           email: data.email,

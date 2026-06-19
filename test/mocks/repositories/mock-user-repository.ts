@@ -33,7 +33,15 @@ export class MockUserRepository implements UserRepository {
     return this.users.get(id) ?? null;
   }
 
+  async findByIdWithCredentials(id: string): Promise<User | null> {
+    return this.users.get(id) ?? null;
+  }
+
   async findByEmail(email: string): Promise<User | null> {
+    return [...this.users.values()].find((u) => u.email === email) ?? null;
+  }
+
+  async findByEmailWithCredentials(email: string): Promise<User | null> {
     return [...this.users.values()].find((u) => u.email === email) ?? null;
   }
 

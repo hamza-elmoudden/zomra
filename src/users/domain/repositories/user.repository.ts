@@ -7,7 +7,9 @@ export abstract class UserRepository {
   abstract complete(user: User): Promise<boolean>;
   abstract update(user: User): Promise<boolean>;
   abstract findById(id: string): Promise<User | null>;
+  abstract findByIdWithCredentials(id: string): Promise<User | null>;
   abstract findByEmail(email: string): Promise<User | null>;
+  abstract findByEmailWithCredentials(email: string): Promise<User | null>;
   abstract findByGoogleId(googleId: string): Promise<User | null>;
   abstract findByCity(city: string): Promise<User[] | null>;
   abstract linkGoogleId(userId: string, googleId: string): Promise<User>;
